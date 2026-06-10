@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+# records.csv committed deliberately (released per-experiment records)
+paper/main.pdf
+paper/main.aux
+paper/main.bbl
+paper/main.log
+paper/main.out
+paper/main.blg
+arxiv_submission/
+arxiv_submission.tar.gz
+.DS_Store

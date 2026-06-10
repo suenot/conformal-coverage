@@ -1,0 +1,208 @@
+% =====================================================================
+% refs.bib — "Conformal Prediction for Financial Returns:
+%             Where Coverage Survives and Where It Breaks"
+% All entries verified against publisher / proceedings pages, 2026-06-10.
+% Caveats are noted inline as % comments above the relevant entries.
+% =====================================================================
+
+% ------------------------- Conformal foundations --------------------
+
+@book{vovk2005algorithmic,
+  author    = {Vovk, Vladimir and Gammerman, Alexander and Shafer, Glenn},
+  title     = {Algorithmic Learning in a Random World},
+  publisher = {Springer},
+  address   = {New York, NY},
+  year      = {2005},
+  doi       = {10.1007/b106715},
+  isbn      = {978-0-387-00152-4}
+}
+
+% Second edition verified: Springer, Cham, 2022, DOI 10.1007/978-3-031-06649-8,
+% eBook ISBN 978-3-031-06649-8 / hardcover 978-3-031-06648-1. Citable.
+@book{vovk2022algorithmic,
+  author    = {Vovk, Vladimir and Gammerman, Alexander and Shafer, Glenn},
+  title     = {Algorithmic Learning in a Random World},
+  edition   = {2nd},
+  publisher = {Springer},
+  address   = {Cham},
+  year      = {2022},
+  doi       = {10.1007/978-3-031-06649-8},
+  isbn      = {978-3-031-06648-1}
+}
+
+@article{shafer2008tutorial,
+  author  = {Shafer, Glenn and Vovk, Vladimir},
+  title   = {A Tutorial on Conformal Prediction},
+  journal = {Journal of Machine Learning Research},
+  volume  = {9},
+  pages   = {371--421},
+  year    = {2008},
+  url     = {https://jmlr.org/papers/v9/shafer08a.html}
+}
+
+@article{lei2018distribution,
+  author  = {Lei, Jing and G'Sell, Max and Rinaldo, Alessandro and Tibshirani, Ryan J. and Wasserman, Larry},
+  title   = {Distribution-Free Predictive Inference for Regression},
+  journal = {Journal of the American Statistical Association},
+  volume  = {113},
+  number  = {523},
+  pages   = {1094--1111},
+  year    = {2018},
+  doi     = {10.1080/01621459.2017.1307116}
+}
+
+@article{angelopoulos2023conformal,
+  author  = {Angelopoulos, Anastasios N. and Bates, Stephen},
+  title   = {Conformal Prediction: A Gentle Introduction},
+  journal = {Foundations and Trends in Machine Learning},
+  volume  = {16},
+  number  = {4},
+  pages   = {494--591},
+  year    = {2023},
+  doi     = {10.1561/2200000101}
+}
+
+% --------------- Adaptivity to heteroskedasticity -------------------
+
+% Pages 3538-3548 per the NeurIPS 2019 proceedings listing.
+@inproceedings{romano2019conformalized,
+  author    = {Romano, Yaniv and Patterson, Evan and Cand{\`e}s, Emmanuel J.},
+  title     = {Conformalized Quantile Regression},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {32},
+  pages     = {3538--3548},
+  year      = {2019},
+  url       = {https://papers.nips.cc/paper_files/paper/2019/hash/5103c3584b063c431bd1268e9b5e76fb-Abstract.html}
+}
+
+@article{chernozhukov2021distributional,
+  author  = {Chernozhukov, Victor and W{\"u}thrich, Kaspar and Zhu, Yinchu},
+  title   = {Distributional Conformal Prediction},
+  journal = {Proceedings of the National Academy of Sciences},
+  volume  = {118},
+  number  = {48},
+  pages   = {e2107794118},
+  year    = {2021},
+  doi     = {10.1073/pnas.2107794118}
+}
+
+% ------------- Conformal beyond exchangeability / time series -------
+
+% Venue verified: COLT 2018 (PMLR vol. 75), NOT JASA. The 2021 JASA paper by
+% the same authors ("An Exact and Robust Conformal Inference Method for
+% Counterfactual and Synthetic Controls") is a different, counterfactual-
+% inference paper and should not be cited for the time-series result.
+@inproceedings{chernozhukov2018exact,
+  author    = {Chernozhukov, Victor and W{\"u}thrich, Kaspar and Zhu, Yinchu},
+  title     = {Exact and Robust Conformal Inference Methods for Predictive Machine Learning with Dependent Data},
+  booktitle = {Proceedings of the 31st Conference on Learning Theory (COLT)},
+  series    = {Proceedings of Machine Learning Research},
+  volume    = {75},
+  pages     = {732--749},
+  year      = {2018},
+  publisher = {PMLR},
+  url       = {https://proceedings.mlr.press/v75/chernozhukov18a.html}
+}
+
+@inproceedings{xu2021conformal,
+  author    = {Xu, Chen and Xie, Yao},
+  title     = {Conformal Prediction Interval for Dynamic Time-Series},
+  booktitle = {Proceedings of the 38th International Conference on Machine Learning (ICML)},
+  series    = {Proceedings of Machine Learning Research},
+  volume    = {139},
+  pages     = {11559--11569},
+  year      = {2021},
+  publisher = {PMLR},
+  url       = {https://proceedings.mlr.press/v139/xu21h.html}
+}
+
+@inproceedings{gibbs2021adaptive,
+  author    = {Gibbs, Isaac and Cand{\`e}s, Emmanuel J.},
+  title     = {Adaptive Conformal Inference Under Distribution Shift},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {34},
+  pages     = {1660--1672},
+  year      = {2021},
+  url       = {https://proceedings.neurips.cc/paper_files/paper/2021/hash/0d441de75945e5acbc865406fc9a2559-Abstract.html}
+}
+
+% Verified: JMLR 25(162):1-36, 2024.
+@article{gibbs2024conformal,
+  author  = {Gibbs, Isaac and Cand{\`e}s, Emmanuel J.},
+  title   = {Conformal Inference for Online Prediction with Arbitrary Distribution Shifts},
+  journal = {Journal of Machine Learning Research},
+  volume  = {25},
+  number  = {162},
+  pages   = {1--36},
+  year    = {2024},
+  url     = {https://jmlr.org/papers/v25/22-1218.html}
+}
+
+@inproceedings{zaffran2022adaptive,
+  author    = {Zaffran, Margaux and F{\'e}ron, Olivier and Goude, Yannig and Josse, Julie and Dieuleveut, Aymeric},
+  title     = {Adaptive Conformal Predictions for Time Series},
+  booktitle = {Proceedings of the 39th International Conference on Machine Learning (ICML)},
+  series    = {Proceedings of Machine Learning Research},
+  volume    = {162},
+  pages     = {25834--25866},
+  year      = {2022},
+  publisher = {PMLR},
+  url       = {https://proceedings.mlr.press/v162/zaffran22a.html}
+}
+
+@article{barber2023conformal,
+  author  = {Barber, Rina Foygel and Cand{\`e}s, Emmanuel J. and Ramdas, Aaditya and Tibshirani, Ryan J.},
+  title   = {Conformal Prediction Beyond Exchangeability},
+  journal = {The Annals of Statistics},
+  volume  = {51},
+  number  = {2},
+  pages   = {816--845},
+  year    = {2023},
+  doi     = {10.1214/23-AOS2276}
+}
+
+% ------------------- Finance / econometrics anchors -----------------
+
+@article{engle1982autoregressive,
+  author  = {Engle, Robert F.},
+  title   = {Autoregressive Conditional Heteroscedasticity with Estimates of the Variance of {United Kingdom} Inflation},
+  journal = {Econometrica},
+  volume  = {50},
+  number  = {4},
+  pages   = {987--1007},
+  year    = {1982},
+  doi     = {10.2307/1912773}
+}
+
+@article{bollerslev1986generalized,
+  author  = {Bollerslev, Tim},
+  title   = {Generalized Autoregressive Conditional Heteroskedasticity},
+  journal = {Journal of Econometrics},
+  volume  = {31},
+  number  = {3},
+  pages   = {307--327},
+  year    = {1986},
+  doi     = {10.1016/0304-4076(86)90063-1}
+}
+
+@article{christoffersen1998evaluating,
+  author  = {Christoffersen, Peter F.},
+  title   = {Evaluating Interval Forecasts},
+  journal = {International Economic Review},
+  volume  = {39},
+  number  = {4},
+  pages   = {841--862},
+  year    = {1998},
+  doi     = {10.2307/2527341}
+}
+
+@article{kupiec1995techniques,
+  author  = {Kupiec, Paul H.},
+  title   = {Techniques for Verifying the Accuracy of Risk Measurement Models},
+  journal = {The Journal of Derivatives},
+  volume  = {3},
+  number  = {2},
+  pages   = {73--84},
+  year    = {1995},
+  doi     = {10.3905/jod.1995.407942}
+}
