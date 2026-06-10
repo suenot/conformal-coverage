@@ -31,7 +31,7 @@ import abstractHtml from '../content/abstract.html?raw';
       (typeof katex !== 'undefined') ? go() : document.querySelector('script[src*="katex.min.js"]').addEventListener('load', go);
     });
   </script>
-  <style>
+  <style is:global>
     :root { --ink:#1a1f29; --muted:#5b6472; --accent:#1f3b73; --rule:#e3e6ea; --bg:#fdfdfb; }
     * { box-sizing:border-box; }
     body { margin:0; background:var(--bg); color:var(--ink);
