@@ -36,8 +36,8 @@ import abstractHtml from '../content/abstract.html?raw';
     * { box-sizing:border-box; }
     body { margin:0; background:var(--bg); color:var(--ink);
       font:17px/1.65 Georgia, 'Times New Roman', serif; }
-    /* A4-page-like width (210mm ≈ 794px at 96dpi) rather than a narrow column */
-    .wrap { max-width:880px; margin:0 auto; padding:0 42px 80px; background:#fff;
+    /* wide page so full-width figures fit without scaling down */
+    .wrap { max-width:1140px; margin:0 auto; padding:0 48px 80px; background:#fff;
       box-shadow:0 0 0 1px var(--rule), 0 8px 30px rgba(0,0,0,.05); }
     body { background:#eceef0; }
     header { padding:56px 0 8px; }
@@ -59,7 +59,8 @@ import abstractHtml from '../content/abstract.html?raw';
     hr.sep { border:none; border-top:1px solid var(--rule); margin:40px 0; }
     article h1 { font-size:24px; margin-top:44px; }
     article h2 { font-size:20px; margin-top:34px; }
-    article img { max-width:100%; height:auto; display:block; margin:18px auto; }
+    article img, article embed, article object, article svg
+      { max-width:100%; height:auto; display:block; margin:18px auto; }
     article table { border-collapse:collapse; margin:20px auto; font-size:14.5px; }
     article th, article td { padding:5px 10px; border-bottom:1px solid var(--rule); }
     article .citation { color:var(--muted); }
