@@ -4,15 +4,15 @@ class="math inline">90\%</span> prediction interval needs that interval
 to cover <span class="math inline">90\%</span> of outcomes—not on
 average over a backtest, but <em>tonight</em>, in the volatility regime
 it is actually in. Conformal prediction <span class="citation"
-data-cites="vovk2005algorithmic shafer2008tutorial">(Vovk et al. 2005;
-Shafer and Vovk 2008)</span> is increasingly recommended for this job
-because it wraps any forecaster in a calibration step with a
-finite-sample marginal coverage guarantee and no distributional
-assumptions. The guarantee, however, is proved under exchangeability,
-and financial returns violate it in every interesting way: volatility
-clusters, means drift, regimes break. A growing body of practitioner
-writing asserts that the method transfers anyway.<a href="#fn1"
-class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a></p>
+data-cites="vovk2005algorithmic shafer2008tutorial">[13, 14]</span> is
+increasingly recommended for this job because it wraps any forecaster in
+a calibration step with a finite-sample marginal coverage guarantee and
+no distributional assumptions. The guarantee, however, is proved under
+exchangeability, and financial returns violate it in every interesting
+way: volatility clusters, means drift, regimes break. A growing body of
+practitioner writing asserts that the method transfers anyway.<a
+href="#fn1" class="footnote-ref" id="fnref1"
+role="doc-noteref"><sup>1</sup></a></p>
 <p>Whether it does is an empirical question with a measurable answer,
 because the failure modes are specific. Exchangeability violations can
 hurt in three distinct currencies: marginal coverage (the average),
@@ -87,42 +87,40 @@ data-reference-type="ref" data-reference="sec:tails">6.5</a>).</p></li>
 <h1 id="sec:related">Related work</h1>
 <p><strong>Conformal prediction under exchangeability.</strong>
 Conformal prediction originates in the on-line compression framework of
-<span class="citation" data-cites="vovk2005algorithmic">Vovk et al.
-(2005)</span>, whose second edition consolidates two further decades of
-development <span class="citation"
-data-cites="vovk2022algorithmic">(Vovk et al. 2022)</span>. The method
-wraps any point predictor in a calibration step that converts
+<span class="citation" data-cites="vovk2005algorithmic">[14]</span>,
+whose second edition consolidates two further decades of development
+<span class="citation" data-cites="vovk2022algorithmic">[15]</span>. The
+method wraps any point predictor in a calibration step that converts
 nonconformity scores into prediction sets with finite-sample marginal
 coverage, requiring only exchangeability of the data—no model
 correctness, no distributional assumptions. <span class="citation"
-data-cites="shafer2008tutorial">Shafer and Vovk (2008)</span> give the
-canonical tutorial treatment, and <span class="citation"
-data-cites="angelopoulos2023conformal">Angelopoulos and Bates
-(2023)</span> provide a modern introduction oriented toward
-practitioners. The split (inductive) variant we benchmark was analyzed
-in depth by <span class="citation" data-cites="lei2018distribution">Lei
-et al. (2018)</span>, who establish distribution-free marginal validity
-for regression and, crucially for our purposes, also prove that
-<em>conditional</em> validity is unattainable in finite samples without
-further assumptions. This marginal-versus-conditional distinction is the
-fault line our experiments are designed to expose: financial returns are
-precisely the setting where marginal coverage can be honest on average
-while being systematically wrong in every volatility regime.</p>
+data-cites="shafer2008tutorial">[13]</span> give the canonical tutorial
+treatment, and <span class="citation"
+data-cites="angelopoulos2023conformal">[1]</span> provide a modern
+introduction oriented toward practitioners. The split (inductive)
+variant we benchmark was analyzed in depth by <span class="citation"
+data-cites="lei2018distribution">[11]</span>, who establish
+distribution-free marginal validity for regression and, crucially for
+our purposes, also prove that <em>conditional</em> validity is
+unattainable in finite samples without further assumptions. This
+marginal-versus-conditional distinction is the fault line our
+experiments are designed to expose: financial returns are precisely the
+setting where marginal coverage can be honest on average while being
+systematically wrong in every volatility regime.</p>
 <p><strong>Adaptivity to heteroskedasticity.</strong> Within the
 exchangeable setting, a second line of work makes interval
 <em>width</em> responsive to the input. <span class="citation"
-data-cites="romano2019conformalized">Romano et al. (2019)</span>
-conformalize quantile regression (CQR), calibrating intervals built from
-estimated conditional quantiles and inheriting both the finite-sample
-guarantee and the local adaptivity of the base learner; locally weighted
-(normalized) nonconformity scores in <span class="citation"
-data-cites="lei2018distribution">Lei et al. (2018)</span> pursue the
-same goal by rescaling residuals with a dispersion estimate—the direct
-ancestor of the volatility-normalized conformal method we evaluate.
-<span class="citation"
-data-cites="chernozhukov2021distributional">Chernozhukov et al.
-(2021)</span> push further with distributional conformal prediction,
-ranking probability-integral-transform values rather than raw residuals;
+data-cites="romano2019conformalized">[12]</span> conformalize quantile
+regression (CQR), calibrating intervals built from estimated conditional
+quantiles and inheriting both the finite-sample guarantee and the local
+adaptivity of the base learner; locally weighted (normalized)
+nonconformity scores in <span class="citation"
+data-cites="lei2018distribution">[11]</span> pursue the same goal by
+rescaling residuals with a dispersion estimate—the direct ancestor of
+the volatility-normalized conformal method we evaluate. <span
+class="citation" data-cites="chernozhukov2021distributional">[5]</span>
+push further with distributional conformal prediction, ranking
+probability-integral-transform values rather than raw residuals;
 notably, their empirical motivation is a daily stock-return exercise in
 which the coverage of a mean-residual conformal interval collapses to
 roughly <span class="math inline">50\%</span> in high-volatility
@@ -132,48 +130,48 @@ motivating illustration rather than a systematic study.</p>
 <p><strong>Conformal prediction beyond exchangeability.</strong> Serial
 dependence breaks exchangeability, and a substantial literature now
 relaxes it. <span class="citation"
-data-cites="chernozhukov2018exact">Chernozhukov et al. (2018)</span>
-introduce block-permutation conformal inference and prove approximate
-validity for strongly mixing time series. <span class="citation"
-data-cites="xu2021conformal">Xu and Xie (2021)</span> propose EnbPI, an
+data-cites="chernozhukov2018exact">[4]</span> introduce
+block-permutation conformal inference and prove approximate validity for
+strongly mixing time series. <span class="citation"
+data-cites="xu2021conformal">[16]</span> propose EnbPI, an
 ensemble-bootstrap construction with asymptotic marginal coverage under
 mixing errors and no data splitting. <span class="citation"
-data-cites="barber2023conformal">Barber et al. (2023)</span> drop
-exchangeability entirely, deriving a coverage gap bound for weighted
-conformal prediction governed by the total-variation distance between
-the test point and the (downweighted) calibration points. In the online
-setting, <span class="citation" data-cites="gibbs2021adaptive">Gibbs and
-Candès (2021)</span> introduce Adaptive Conformal Inference (ACI), which
-tunes the working miscoverage level by online gradient descent and
-guarantees the correct long-run coverage <em>frequency</em> for
-arbitrary, even adversarial, distribution shift; <span class="citation"
-data-cites="gibbs2024conformal">Gibbs and Candès (2024)</span>
-strengthen this to coverage guarantees that hold simultaneously over
-arbitrary subintervals and covariate subsets. <span class="citation"
-data-cites="zaffran2022adaptive">Zaffran et al. (2022)</span> analyze
-ACI’s learning-rate sensitivity on dependent series and propose the
-expert-aggregation variant AgACI. A common thread deserves emphasis:
-each relaxation purchases validity in a <em>weaker
-currency</em>—asymptotic, approximate, long-run-averaged, or
-TV-bounded—and the papers’ experiments (electricity prices, ozone,
-synthetic mixing processes) rarely interrogate what those weaker
-guarantees deliver pathwise, conditionally on a volatility regime, or in
-the window immediately following a structural break.</p>
+data-cites="barber2023conformal">[2]</span> drop exchangeability
+entirely, deriving a coverage gap bound for weighted conformal
+prediction governed by the total-variation distance between the test
+point and the (downweighted) calibration points. In the online setting,
+<span class="citation" data-cites="gibbs2021adaptive">[8]</span>
+introduce Adaptive Conformal Inference (ACI), which tunes the working
+miscoverage level by online gradient descent and guarantees the correct
+long-run coverage <em>frequency</em> for arbitrary, even adversarial,
+distribution shift; <span class="citation"
+data-cites="gibbs2024conformal">[9]</span> strengthen this to coverage
+guarantees that hold simultaneously over arbitrary subintervals and
+covariate subsets. <span class="citation"
+data-cites="zaffran2022adaptive">[17]</span> analyze ACI’s learning-rate
+sensitivity on dependent series and propose the expert-aggregation
+variant AgACI. A common thread deserves emphasis: each relaxation
+purchases validity in a <em>weaker currency</em>—asymptotic,
+approximate, long-run-averaged, or TV-bounded—and the papers’
+experiments (electricity prices, ozone, synthetic mixing processes)
+rarely interrogate what those weaker guarantees deliver pathwise,
+conditionally on a volatility regime, or in the window immediately
+following a structural break.</p>
 <p><strong>Volatility models and interval evaluation in
 econometrics.</strong> Finance has its own mature answer to predictive
 intervals. The ARCH and GARCH models of <span class="citation"
-data-cites="engle1982autoregressive">Engle (1982)</span> and <span
-class="citation" data-cites="bollerslev1986generalized">Bollerslev
-(1986)</span> yield conditional-variance forecasts whose implied
-intervals adapt to volatility clustering by construction—the natural
-parametric baseline that any conformal method applied to returns must
-beat or at least match. Equally relevant is the econometric tradition of
-<em>testing</em> interval forecasts: <span class="citation"
-data-cites="kupiec1995techniques">Kupiec (1995)</span> tests
-unconditional coverage of VaR exceptions, and <span class="citation"
-data-cites="christoffersen1998evaluating">Christoffersen (1998)</span>
-adds the conditional-coverage and independence tests that detect exactly
-the failure mode conformal marginal guarantees permit—correct average
+data-cites="engle1982autoregressive">[7]</span> and <span
+class="citation" data-cites="bollerslev1986generalized">[3]</span> yield
+conditional-variance forecasts whose implied intervals adapt to
+volatility clustering by construction—the natural parametric baseline
+that any conformal method applied to returns must beat or at least
+match. Equally relevant is the econometric tradition of <em>testing</em>
+interval forecasts: <span class="citation"
+data-cites="kupiec1995techniques">[10]</span> tests unconditional
+coverage of VaR exceptions, and <span class="citation"
+data-cites="christoffersen1998evaluating">[6]</span> adds the
+conditional-coverage and independence tests that detect exactly the
+failure mode conformal marginal guarantees permit—correct average
 coverage with clustered violations. We import the spirit of that
 toolkit: our regime-stratified and post-break accounting asks
 Christoffersen’s question—is coverage right <em>conditionally</em>, not
@@ -181,28 +179,27 @@ just on average?—but answers it against exact ground truth rather than
 through asymptotic tests on real data.</p>
 <p><strong>The gap.</strong> The two literatures pass each other by.
 Conformal-for-time-series theory papers <span class="citation"
-data-cites="chernozhukov2018exact xu2021conformal barber2023conformal gibbs2021adaptive gibbs2024conformal zaffran2022adaptive">(Chernozhukov
-et al. 2018; Xu and Xie 2021; Barber et al. 2023; Gibbs and Candès 2021,
-2024; Zaffran et al. 2022)</span> prove validity under specific
-relaxations of exchangeability and validate on whatever applications are
-at hand, while a growing body of finance-facing explainer and applied
-content simply asserts that conformal methods transfer to returns. What
-is missing is a controlled accounting: simulations from financial
-DGPs—AR, GARCH, and regime-shift processes—where the true conditional
-quantiles are known exactly, so that marginal coverage,
-volatility-regime-conditional coverage, and post-break coverage can each
-be measured against ground truth rather than proxied. Such a design
-answers questions the theory leaves open in practice: how badly split
-conformal under-covers in high-volatility regimes and over-covers in
-calm ones; how much of that gap volatility normalization and CQR
-actually recover; how many observations ACI needs to re-cover after a
-break and at what cost in interval width; and—the question finance
-practitioners actually face—whether any of this outperforms a plain
-interval from a fitted volatility model <span class="citation"
-data-cites="bollerslev1986generalized">(Bollerslev 1986)</span>, judged
-by the field’s own coverage criteria <span class="citation"
-data-cites="christoffersen1998evaluating kupiec1995techniques">(Christoffersen
-1998; Kupiec 1995)</span>. This paper supplies that accounting.</p>
+data-cites="chernozhukov2018exact xu2021conformal barber2023conformal gibbs2021adaptive gibbs2024conformal zaffran2022adaptive">[2,
+4, 8, 9, 16, 17]</span> prove validity under specific relaxations of
+exchangeability and validate on whatever applications are at hand, while
+a growing body of finance-facing explainer and applied content simply
+asserts that conformal methods transfer to returns. What is missing is a
+controlled accounting: simulations from financial DGPs—AR, GARCH, and
+regime-shift processes—where the true conditional quantiles are known
+exactly, so that marginal coverage, volatility-regime-conditional
+coverage, and post-break coverage can each be measured against ground
+truth rather than proxied. Such a design answers questions the theory
+leaves open in practice: how badly split conformal under-covers in
+high-volatility regimes and over-covers in calm ones; how much of that
+gap volatility normalization and CQR actually recover; how many
+observations ACI needs to re-cover after a break and at what cost in
+interval width; and—the question finance practitioners actually
+face—whether any of this outperforms a plain interval from a fitted
+volatility model <span class="citation"
+data-cites="bollerslev1986generalized">[3]</span>, judged by the field’s
+own coverage criteria <span class="citation"
+data-cites="christoffersen1998evaluating kupiec1995techniques">[6,
+10]</span>. This paper supplies that accounting.</p>
 <h1 id="sec:methods">Interval methods</h1>
 <p>All methods target the central interval at nominal level <span
 class="math inline">1-\alpha</span> with <span
@@ -231,16 +228,16 @@ class="math inline">C_t=[\hat\mu(x_t)-\hat{q}_\alpha,\;\hat\mu(x_t)+\hat{q}_\alp
 (<code>split_abs</code>). If the <span class="math inline">n+1</span>
 scores are exchangeable, <span class="math inline">1-\alpha \le
 \mathbb{P}(y_{n+1}\in C) \le 1-\alpha + 1/(n+1)</span> <span
-class="citation" data-cites="lei2018distribution">(Lei et al.
-2018)</span> (the upper bound assuming almost-surely distinct scores,
-which holds for our continuous scores); with our calibration window
-<span class="math inline">n=250</span> the theoretical coverage is <span
+class="citation" data-cites="lei2018distribution">[11]</span> (the upper
+bound assuming almost-surely distinct scores, which holds for our
+continuous scores); with our calibration window <span
+class="math inline">n=250</span> the theoretical coverage is <span
 class="math inline">\lceil 0.9\cdot 251\rceil/251 \approx
 0.9004</span>.</p>
 <h4 id="volatility-normalized-score.">Volatility-normalized score.</h4>
 <p>The locally weighted variant <span class="citation"
-data-cites="lei2018distribution">(Lei et al. 2018)</span> divides the
-residual by a dispersion estimate: <span
+data-cites="lei2018distribution">[11]</span> divides the residual by a
+dispersion estimate: <span
 class="math inline">s_i=|y_i-\hat\mu(x_i)|/\hat\sigma_i</span>, giving
 <span class="math inline">C_t=\hat\mu(x_t)\pm
 \hat{q}_\alpha\,\hat\sigma_t</span> (<code>split_norm</code>). We use
@@ -251,18 +248,17 @@ computed from past returns only.</p>
 <h4 id="conformalized-quantile-regression.">Conformalized quantile
 regression.</h4>
 <p>CQR <span class="citation"
-data-cites="romano2019conformalized">(Romano et al. 2019)</span> scores
-<span
+data-cites="romano2019conformalized">[12]</span> scores <span
 class="math inline">s_i=\max\{\hat{q}_{\mathrm{lo}}(x_i)-y_i,\;y_i-\hat{q}_{\mathrm{hi}}(x_i)\}</span>
 and reports <span
 class="math inline">C_t=[\hat{q}_{\mathrm{lo}}(x_t)-\hat{q}_\alpha,\;\hat{q}_{\mathrm{hi}}(x_t)+\hat{q}_\alpha]</span>,
 inheriting the width adaptivity of the quantile learner.</p>
 <h4 id="adaptive-conformal-inference.">Adaptive conformal
 inference.</h4>
-<p>ACI <span class="citation" data-cites="gibbs2021adaptive">(Gibbs and
-Candès 2021)</span> keeps the conformal machinery but tunes the
-<em>working level</em> <span class="math inline">\alpha_t</span> online:
-<span class="math display">\begin{equation}
+<p>ACI <span class="citation" data-cites="gibbs2021adaptive">[8]</span>
+keeps the conformal machinery but tunes the <em>working level</em> <span
+class="math inline">\alpha_t</span> online: <span
+class="math display">\begin{equation}
 \alpha_{t+1} \;=\; \alpha_t + \gamma\,(\alpha - \mathrm{err}_t),
 \qquad
 \mathrm{err}_t = \mathbf{1}\{y_t \notin C_t\},
@@ -293,10 +289,10 @@ the grid <span
 class="math inline">\lambda\in\{0.80,0.81,\dots,0.99\}</span> —an
 IGARCH/RiskMetrics-style stand-in for the GARCH tradition <span
 class="citation"
-data-cites="engle1982autoregressive bollerslev1986generalized">(Engle
-1982; Bollerslev 1986)</span>. <code>oracle</code> is the DGP’s true
-conditional interval, the efficiency yardstick: all widths below are
-reported as ratios to it.</p>
+data-cites="engle1982autoregressive bollerslev1986generalized">[3,
+7]</span>. <code>oracle</code> is the DGP’s true conditional interval,
+the efficiency yardstick: all widths below are reported as ratios to
+it.</p>
 <h1 id="sec:framework">Simulation framework</h1>
 <p>Every DGP emits returns of the form <span
 class="math display">\begin{equation}
@@ -326,9 +322,10 @@ heteroskedasticity).</p></li>
 <li><p><strong>GARCH(1,1)</strong>: <span
 class="math inline">\sigma_t^2=\omega+a\,(r_{t-1}-\mu)^2+b\,\sigma_{t-1}^2</span>
 with <span class="math inline">\omega=\sigma^2(1-a-b)</span> <span
-class="citation" data-cites="bollerslev1986generalized">(Bollerslev
-1986)</span>—volatility clustering; stationary but not exchangeable. The
-true <span class="math inline">\sigma_t</span> comes from the recursion
+class="citation"
+data-cites="bollerslev1986generalized">[3]</span>—volatility clustering;
+stationary but not exchangeable. The true <span
+class="math inline">\sigma_t</span> comes from the recursion
 itself.</p></li>
 <li><p><strong>break</strong>: iid base with an abrupt shift at step
 <span class="math inline">t^\ast</span>: <span
@@ -397,8 +394,8 @@ class="math inline">250</span> nonconformity scores, re-scored under the
 model currently in force and slid forward every step (newly observed
 outcomes enter immediately). ACI states update every step from the
 realized cover/miss of their own interval, as in <span class="citation"
-data-cites="gibbs2021adaptive">Gibbs and Candès (2021)</span>. The point
-and quantile learners are gradient boosting machines (<span
+data-cites="gibbs2021adaptive">[8]</span>. The point and quantile
+learners are gradient boosting machines (<span
 class="math inline">100</span> trees, depth <span
 class="math inline">2</span>, learning rate <span
 class="math inline">0.08</span>; quantile loss for <span
@@ -573,12 +570,11 @@ quantile regression.</figcaption>
 normalization is the cheap fix</h2>
 <p>Marginal honesty can hide conditional dishonesty <span
 class="citation"
-data-cites="lei2018distribution christoffersen1998evaluating">(Lei et
-al. 2018; Christoffersen 1998)</span>. Stratifying GARCH coverage by the
-<em>true</em>-volatility tercile of each step (Table <a
-href="#tab:conditional" data-reference-type="ref"
-data-reference="tab:conditional">2</a>, Figure <a
-href="#fig:conditional" data-reference-type="ref"
+data-cites="lei2018distribution christoffersen1998evaluating">[6,
+11]</span>. Stratifying GARCH coverage by the <em>true</em>-volatility
+tercile of each step (Table <a href="#tab:conditional"
+data-reference-type="ref" data-reference="tab:conditional">2</a>,
+Figure <a href="#fig:conditional" data-reference-type="ref"
 data-reference="fig:conditional">3</a>) exposes the headline failure:
 split conformal with the absolute score covers <span
 class="math inline">0.952/0.915/0.820</span> across
@@ -766,10 +762,9 @@ class="math inline">0.935</span> at steps <span
 class="math inline">150</span>–<span class="math inline">300</span> for
 <span class="math inline">\gamma=0.005</span>)—the long-run average is
 protected by oscillation, not by clairvoyance <span class="citation"
-data-cites="gibbs2021adaptive zaffran2022adaptive">(Gibbs and Candès
-2021; Zaffran et al. 2022)</span>. Stacking the fixes is best: ACI on
-the <em>normalized</em> score at <span
-class="math inline">\gamma=0.01</span> reaches <span
+data-cites="gibbs2021adaptive zaffran2022adaptive">[8, 17]</span>.
+Stacking the fixes is best: ACI on the <em>normalized</em> score at
+<span class="math inline">\gamma=0.01</span> reaches <span
 class="math inline">0.875</span> in the first <span
 class="math inline">60</span> steps and <span
 class="math inline">0.924</span> at <span
@@ -1155,119 +1150,138 @@ every number quoted in this paper matches the generated results, and a
 truths and the conformal theorems (including the ACI update direction).
 The DGPs, methods, protocol, and analysis are released as an open-source
 package at the repository above.</p>
-<h1 id="references">References</h1><div id="refs" class="references csl-bib-body hanging-indent"
+<h1 id="references">References</h1><div id="refs" class="references csl-bib-body" data-entry-spacing="1"
 role="list">
 <div id="ref-angelopoulos2023conformal" class="csl-entry"
 role="listitem">
-Angelopoulos, Anastasios N., and Stephen Bates. 2023. <span>“Conformal
-Prediction: A Gentle Introduction.”</span> <em>Foundations and Trends in
-Machine Learning</em> 16 (4): 494–591. <a
-href="https://doi.org/10.1561/2200000101">https://doi.org/10.1561/2200000101</a>.
+<div class="csl-left-margin">[1] </div><div
+class="csl-right-inline">Anastasios N. Angelopoulos and Stephen Bates.
+Conformal prediction: A gentle introduction. <em>Foundations and Trends
+in Machine Learning</em>, 16(4):494–591, 2023. doi: <a
+href="https://doi.org/10.1561/2200000101">10.1561/2200000101</a>.</div>
 </div>
 <div id="ref-barber2023conformal" class="csl-entry" role="listitem">
-Barber, Rina Foygel, Emmanuel J. Candès, Aaditya Ramdas, and Ryan J.
-Tibshirani. 2023. <span>“Conformal Prediction Beyond
-Exchangeability.”</span> <em>The Annals of Statistics</em> 51 (2):
-816–45. <a
-href="https://doi.org/10.1214/23-AOS2276">https://doi.org/10.1214/23-AOS2276</a>.
+<div class="csl-left-margin">[2] </div><div
+class="csl-right-inline">Rina Foygel Barber, Emmanuel J. Candès, Aaditya
+Ramdas, and Ryan J. Tibshirani. Conformal prediction beyond
+exchangeability. <em>The Annals of Statistics</em>, 51(2):816–845, 2023.
+doi: <a
+href="https://doi.org/10.1214/23-AOS2276">10.1214/23-AOS2276</a>.</div>
 </div>
 <div id="ref-bollerslev1986generalized" class="csl-entry"
 role="listitem">
-Bollerslev, Tim. 1986. <span>“Generalized Autoregressive Conditional
-Heteroskedasticity.”</span> <em>Journal of Econometrics</em> 31 (3):
-307–27. <a
-href="https://doi.org/10.1016/0304-4076(86)90063-1">https://doi.org/10.1016/0304-4076(86)90063-1</a>.
+<div class="csl-left-margin">[3] </div><div class="csl-right-inline">Tim
+Bollerslev. Generalized autoregressive conditional heteroskedasticity.
+<em>Journal of Econometrics</em>, 31(3):307–327, 1986. doi: <a
+href="https://doi.org/10.1016/0304-4076(86)90063-1">10.1016/0304-4076(86)90063-1</a>.</div>
 </div>
 <div id="ref-chernozhukov2018exact" class="csl-entry" role="listitem">
-Chernozhukov, Victor, Kaspar Wüthrich, and Yinchu Zhu. 2018.
-<span>“Exact and Robust Conformal Inference Methods for Predictive
-Machine Learning with Dependent Data.”</span> <em>Proceedings of the
-31st Conference on Learning Theory (COLT)</em>, Proceedings of machine
-learning research, vol. 75: 732–49. <a
-href="https://proceedings.mlr.press/v75/chernozhukov18a.html">https://proceedings.mlr.press/v75/chernozhukov18a.html</a>.
+<div class="csl-left-margin">[4] </div><div
+class="csl-right-inline">Victor Chernozhukov, Kaspar Wüthrich, and
+Yinchu Zhu. <a
+href="https://proceedings.mlr.press/v75/chernozhukov18a.html">Exact and
+robust conformal inference methods for predictive machine learning with
+dependent data</a>. In <em>Proceedings of the 31st conference on
+learning theory (COLT)</em>, pages 732–749, 2018.</div>
 </div>
 <div id="ref-chernozhukov2021distributional" class="csl-entry"
 role="listitem">
-Chernozhukov, Victor, Kaspar Wüthrich, and Yinchu Zhu. 2021.
-<span>“Distributional Conformal Prediction.”</span> <em>Proceedings of
-the National Academy of Sciences</em> 118 (48): e2107794118. <a
-href="https://doi.org/10.1073/pnas.2107794118">https://doi.org/10.1073/pnas.2107794118</a>.
+<div class="csl-left-margin">[5] </div><div
+class="csl-right-inline">Victor Chernozhukov, Kaspar Wüthrich, and
+Yinchu Zhu. Distributional conformal prediction. <em>Proceedings of the
+National Academy of Sciences</em>, 118(48):e2107794118, 2021. doi: <a
+href="https://doi.org/10.1073/pnas.2107794118">10.1073/pnas.2107794118</a>.</div>
 </div>
 <div id="ref-christoffersen1998evaluating" class="csl-entry"
 role="listitem">
-Christoffersen, Peter F. 1998. <span>“Evaluating Interval
-Forecasts.”</span> <em>International Economic Review</em> 39 (4):
-841–62. <a
-href="https://doi.org/10.2307/2527341">https://doi.org/10.2307/2527341</a>.
+<div class="csl-left-margin">[6] </div><div
+class="csl-right-inline">Peter F. Christoffersen. Evaluating interval
+forecasts. <em>International Economic Review</em>, 39(4):841–862, 1998.
+doi: <a
+href="https://doi.org/10.2307/2527341">10.2307/2527341</a>.</div>
 </div>
 <div id="ref-engle1982autoregressive" class="csl-entry" role="listitem">
-Engle, Robert F. 1982. <span>“Autoregressive Conditional
-Heteroscedasticity with Estimates of the Variance of <span>United
-Kingdom</span> Inflation.”</span> <em>Econometrica</em> 50 (4):
-987–1007. <a
-href="https://doi.org/10.2307/1912773">https://doi.org/10.2307/1912773</a>.
+<div class="csl-left-margin">[7] </div><div
+class="csl-right-inline">Robert F. Engle. Autoregressive conditional
+heteroscedasticity with estimates of the variance of <span>United
+Kingdom</span> inflation. <em>Econometrica</em>, 50(4):987–1007, 1982.
+doi: <a
+href="https://doi.org/10.2307/1912773">10.2307/1912773</a>.</div>
 </div>
 <div id="ref-gibbs2021adaptive" class="csl-entry" role="listitem">
-Gibbs, Isaac, and Emmanuel J. Candès. 2021. <span>“Adaptive Conformal
-Inference Under Distribution Shift.”</span> <em>Advances in Neural
-Information Processing Systems</em> 34: 1660–72. <a
-href="https://proceedings.neurips.cc/paper_files/paper/2021/hash/0d441de75945e5acbc865406fc9a2559-Abstract.html">https://proceedings.neurips.cc/paper_files/paper/2021/hash/0d441de75945e5acbc865406fc9a2559-Abstract.html</a>.
+<div class="csl-left-margin">[8] </div><div
+class="csl-right-inline">Isaac Gibbs and Emmanuel J. Candès. <a
+href="https://proceedings.neurips.cc/paper_files/paper/2021/hash/0d441de75945e5acbc865406fc9a2559-Abstract.html">Adaptive
+conformal inference under distribution shift</a>. In <em>Advances in
+neural information processing systems</em>, pages 1660–1672, 2021.</div>
 </div>
 <div id="ref-gibbs2024conformal" class="csl-entry" role="listitem">
-Gibbs, Isaac, and Emmanuel J. Candès. 2024. <span>“Conformal Inference
-for Online Prediction with Arbitrary Distribution Shifts.”</span>
-<em>Journal of Machine Learning Research</em> 25 (162): 1–36. <a
-href="https://jmlr.org/papers/v25/22-1218.html">https://jmlr.org/papers/v25/22-1218.html</a>.
+<div class="csl-left-margin">[9] </div><div
+class="csl-right-inline">Isaac Gibbs and Emmanuel J. Candès. <a
+href="https://jmlr.org/papers/v25/22-1218.html">Conformal inference for
+online prediction with arbitrary distribution shifts</a>. <em>Journal of
+Machine Learning Research</em>, 25(162):1–36, 2024.</div>
 </div>
 <div id="ref-kupiec1995techniques" class="csl-entry" role="listitem">
-Kupiec, Paul H. 1995. <span>“Techniques for Verifying the Accuracy of
-Risk Measurement Models.”</span> <em>The Journal of Derivatives</em> 3
-(2): 73–84. <a
-href="https://doi.org/10.3905/jod.1995.407942">https://doi.org/10.3905/jod.1995.407942</a>.
+<div class="csl-left-margin">[10] </div><div
+class="csl-right-inline">Paul H. Kupiec. Techniques for verifying the
+accuracy of risk measurement models. <em>The Journal of
+Derivatives</em>, 3(2):73–84, 1995. doi: <a
+href="https://doi.org/10.3905/jod.1995.407942">10.3905/jod.1995.407942</a>.</div>
 </div>
 <div id="ref-lei2018distribution" class="csl-entry" role="listitem">
-Lei, Jing, Max G’Sell, Alessandro Rinaldo, Ryan J. Tibshirani, and Larry
-Wasserman. 2018. <span>“Distribution-Free Predictive Inference for
-Regression.”</span> <em>Journal of the American Statistical
-Association</em> 113 (523): 1094–111. <a
-href="https://doi.org/10.1080/01621459.2017.1307116">https://doi.org/10.1080/01621459.2017.1307116</a>.
+<div class="csl-left-margin">[11] </div><div
+class="csl-right-inline">Jing Lei, Max G’Sell, Alessandro Rinaldo, Ryan
+J. Tibshirani, and Larry Wasserman. Distribution-free predictive
+inference for regression. <em>Journal of the American Statistical
+Association</em>, 113(523):1094–1111, 2018. doi: <a
+href="https://doi.org/10.1080/01621459.2017.1307116">10.1080/01621459.2017.1307116</a>.</div>
 </div>
 <div id="ref-romano2019conformalized" class="csl-entry" role="listitem">
-Romano, Yaniv, Evan Patterson, and Emmanuel J. Candès. 2019.
-<span>“Conformalized Quantile Regression.”</span> <em>Advances in Neural
-Information Processing Systems</em> 32: 3538–48. <a
-href="https://papers.nips.cc/paper_files/paper/2019/hash/5103c3584b063c431bd1268e9b5e76fb-Abstract.html">https://papers.nips.cc/paper_files/paper/2019/hash/5103c3584b063c431bd1268e9b5e76fb-Abstract.html</a>.
+<div class="csl-left-margin">[12] </div><div
+class="csl-right-inline">Yaniv Romano, Evan Patterson, and Emmanuel J.
+Candès. <a
+href="https://papers.nips.cc/paper_files/paper/2019/hash/5103c3584b063c431bd1268e9b5e76fb-Abstract.html">Conformalized
+quantile regression</a>. In <em>Advances in neural information
+processing systems</em>, pages 3538–3548, 2019.</div>
 </div>
 <div id="ref-shafer2008tutorial" class="csl-entry" role="listitem">
-Shafer, Glenn, and Vladimir Vovk. 2008. <span>“A Tutorial on Conformal
-Prediction.”</span> <em>Journal of Machine Learning Research</em> 9:
-371–421. <a
-href="https://jmlr.org/papers/v9/shafer08a.html">https://jmlr.org/papers/v9/shafer08a.html</a>.
+<div class="csl-left-margin">[13] </div><div
+class="csl-right-inline">Glenn Shafer and Vladimir Vovk. <a
+href="https://jmlr.org/papers/v9/shafer08a.html">A tutorial on conformal
+prediction</a>. <em>Journal of Machine Learning Research</em>,
+9:371–421, 2008.</div>
 </div>
 <div id="ref-vovk2005algorithmic" class="csl-entry" role="listitem">
-Vovk, Vladimir, Alexander Gammerman, and Glenn Shafer. 2005.
-<em>Algorithmic Learning in a Random World</em>. Springer. <a
-href="https://doi.org/10.1007/b106715">https://doi.org/10.1007/b106715</a>.
+<div class="csl-left-margin">[14] </div><div
+class="csl-right-inline">Vladimir Vovk, Alexander Gammerman, and Glenn
+Shafer. <em>Algorithmic learning in a random world</em>. Springer, 2005.
+doi: <a
+href="https://doi.org/10.1007/b106715">10.1007/b106715</a>.</div>
 </div>
 <div id="ref-vovk2022algorithmic" class="csl-entry" role="listitem">
-Vovk, Vladimir, Alexander Gammerman, and Glenn Shafer. 2022.
-<em>Algorithmic Learning in a Random World</em>. 2nd ed. Springer. <a
-href="https://doi.org/10.1007/978-3-031-06649-8">https://doi.org/10.1007/978-3-031-06649-8</a>.
+<div class="csl-left-margin">[15] </div><div
+class="csl-right-inline">Vladimir Vovk, Alexander Gammerman, and Glenn
+Shafer. <em>Algorithmic learning in a random world</em>. Springer, 2022.
+doi: <a
+href="https://doi.org/10.1007/978-3-031-06649-8">10.1007/978-3-031-06649-8</a>.</div>
 </div>
 <div id="ref-xu2021conformal" class="csl-entry" role="listitem">
-Xu, Chen, and Yao Xie. 2021. <span>“Conformal Prediction Interval for
-Dynamic Time-Series.”</span> <em>Proceedings of the 38th International
-Conference on Machine Learning (ICML)</em>, Proceedings of machine
-learning research, vol. 139: 11559–69. <a
-href="https://proceedings.mlr.press/v139/xu21h.html">https://proceedings.mlr.press/v139/xu21h.html</a>.
+<div class="csl-left-margin">[16] </div><div
+class="csl-right-inline">Chen Xu and Yao Xie. <a
+href="https://proceedings.mlr.press/v139/xu21h.html">Conformal
+prediction interval for dynamic time-series</a>. In <em>Proceedings of
+the 38th international conference on machine learning (ICML)</em>, pages
+11559–11569, 2021.</div>
 </div>
 <div id="ref-zaffran2022adaptive" class="csl-entry" role="listitem">
-Zaffran, Margaux, Olivier Féron, Yannig Goude, Julie Josse, and Aymeric
-Dieuleveut. 2022. <span>“Adaptive Conformal Predictions for Time
-Series.”</span> <em>Proceedings of the 39th International Conference on
-Machine Learning (ICML)</em>, Proceedings of machine learning research,
-vol. 162: 25834–66. <a
-href="https://proceedings.mlr.press/v162/zaffran22a.html">https://proceedings.mlr.press/v162/zaffran22a.html</a>.
+<div class="csl-left-margin">[17] </div><div
+class="csl-right-inline">Margaux Zaffran, Olivier Féron, Yannig Goude,
+Julie Josse, and Aymeric Dieuleveut. <a
+href="https://proceedings.mlr.press/v162/zaffran22a.html">Adaptive
+conformal predictions for time series</a>. In <em>Proceedings of the
+39th international conference on machine learning (ICML)</em>, pages
+25834–25866, 2022.</div>
 </div>
 </div>
 <section id="footnotes" class="footnotes footnotes-end-of-document"

@@ -63,8 +63,11 @@ import abstractHtml from '../content/abstract.html?raw';
       { max-width:100%; height:auto; display:block; margin:18px auto; }
     article table { border-collapse:collapse; margin:20px auto; font-size:14.5px; }
     article th, article td { padding:5px 10px; border-bottom:1px solid var(--rule); }
-    article .citation { color:var(--muted); }
-    article div#refs p { font-size:14.5px; color:var(--muted); }
+    article .citation { color:var(--accent); }
+    /* numbered reference list, PDF-like: [n] label column + hanging text */
+    article div#refs .csl-entry { display:flex; gap:10px; margin:12px 0; font-size:15.5px; }
+    article div#refs .csl-left-margin { min-width:36px; text-align:right; flex:none; }
+    article div#refs .csl-right-inline { flex:1; }
     footer { margin-top:60px; color:var(--muted); font-size:13.5px;
       border-top:1px solid var(--rule); padding-top:16px; }
     .note { font:13.5px -apple-system, sans-serif; color:var(--muted);
