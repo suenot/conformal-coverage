@@ -1,0 +1,91 @@
+---
+import paperHtml from '../content/paper.html?raw';
+import abstractHtml from '../content/abstract.html?raw';
+---
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Conformal Prediction for Financial Returns: Where Coverage Survives and Where It Breaks</title>
+  <meta name="description" content="Where conformal prediction's coverage survives on financial returns — and where it breaks." />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
+    integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous" />
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"
+    integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+    integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true}]});"></script>
+  <style>
+    :root { --ink:#1a1f29; --muted:#5b6472; --accent:#1f3b73; --rule:#e3e6ea; --bg:#fdfdfb; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink);
+      font:17px/1.65 Georgia, 'Times New Roman', serif; }
+    .wrap { max-width:760px; margin:0 auto; padding:0 20px 80px; }
+    header { padding:56px 0 8px; }
+    h1.title { font-size:30px; line-height:1.25; margin:0 0 14px; }
+    .meta { color:var(--muted); font-size:15px; }
+    .meta a { color:var(--accent); text-decoration:none; }
+    .tagline { font-style:italic; color:var(--muted); margin:14px 0 22px; }
+    .buttons { display:flex; gap:10px; flex-wrap:wrap; margin:18px 0 8px;
+      font-family:-apple-system, 'Segoe UI', sans-serif; }
+    .btn { display:inline-block; padding:9px 16px; border-radius:7px; font-size:14.5px;
+      text-decoration:none; border:1px solid var(--accent); }
+    .btn.primary { background:var(--accent); color:#fff; }
+    .btn.ghost { color:var(--accent); background:#fff; }
+    .badge { display:inline-block; font:12.5px -apple-system, sans-serif; color:#2e6b34;
+      background:#e8f3e9; border:1px solid #cfe6d2; padding:3px 9px; border-radius:99px; margin-right:6px; }
+    .abstract { border:1px solid var(--rule); border-radius:10px; background:#fff;
+      padding:18px 22px; margin:26px 0 8px; }
+    .abstract h2 { margin:0 0 8px; font-size:16px; letter-spacing:.4px; text-transform:uppercase; color:var(--muted); }
+    hr.sep { border:none; border-top:1px solid var(--rule); margin:40px 0; }
+    article h1 { font-size:24px; margin-top:44px; }
+    article h2 { font-size:20px; margin-top:34px; }
+    article img { max-width:100%; height:auto; display:block; margin:18px auto; }
+    article table { border-collapse:collapse; margin:20px auto; font-size:14.5px; }
+    article th, article td { padding:5px 10px; border-bottom:1px solid var(--rule); }
+    article .citation { color:var(--muted); }
+    article div#refs p { font-size:14.5px; color:var(--muted); }
+    footer { margin-top:60px; color:var(--muted); font-size:13.5px;
+      border-top:1px solid var(--rule); padding-top:16px; }
+    .note { font:13.5px -apple-system, sans-serif; color:var(--muted);
+      background:#f4f5f7; border-radius:8px; padding:10px 14px; margin:18px 0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div><span class="badge">reproducible research</span><span class="badge">arXiv-ready</span></div>
+      <h1 class="title">Conformal Prediction for Financial Returns: Where Coverage Survives and Where It Breaks</h1>
+      <div class="meta">Eugen Soloviov · Independent Researcher ·
+        <a href="https://orcid.org/0009-0006-3148-111X">ORCID 0009-0006-3148-111X</a></div>
+      <p class="tagline">Where conformal prediction's coverage survives on financial returns — and where it breaks.</p>
+      <div class="buttons">
+        <a class="btn primary" href="/paper.pdf" download>Download PDF</a>
+        <a class="btn ghost" href="/paper.pdf">View PDF</a>
+        <a class="btn ghost" href="https://github.com/suenot/conformal-coverage">Code &amp; data on GitHub</a>
+      </div>
+    </header>
+
+    <section class="abstract">
+      <h2>Abstract</h2>
+      <Fragment set:html={abstractHtml} />
+    </section>
+
+    <p class="note">This is the interactive web rendering of the paper (math via KaTeX,
+    vector figures). The <a href="/paper.pdf">PDF</a> is the authoritative version;
+    every number is reproducible from the
+    <a href="https://github.com/suenot/conformal-coverage">open-source code and seeds</a>.</p>
+
+    <hr class="sep" />
+
+    <article>
+      <Fragment set:html={paperHtml} />
+    </article>
+
+    <footer>
+      © 2026 Eugen Soloviov · Paper text &amp; figures CC BY 4.0 · Code MIT ·
+      <a href="https://github.com/suenot/conformal-coverage">github.com/suenot/conformal-coverage</a>
+    </footer>
+  </div>
+</body>
+</html>

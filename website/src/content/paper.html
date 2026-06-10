@@ -1,0 +1,1311 @@
+<h1 id="introduction">Introduction</h1>
+<p>A trading system that sizes positions from a <span
+class="math inline">90\%</span> prediction interval needs that interval
+to cover <span class="math inline">90\%</span> of outcomes—not on
+average over a backtest, but <em>tonight</em>, in the volatility regime
+it is actually in. Conformal prediction <span class="citation"
+data-cites="vovk2005algorithmic shafer2008tutorial">(Vovk et al. 2005;
+Shafer and Vovk 2008)</span> is increasingly recommended for this job
+because it wraps any forecaster in a calibration step with a
+finite-sample marginal coverage guarantee and no distributional
+assumptions. The guarantee, however, is proved under exchangeability,
+and financial returns violate it in every interesting way: volatility
+clusters, means drift, regimes break. A growing body of practitioner
+writing asserts that the method transfers anyway.<a href="#fn1"
+class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a></p>
+<p>Whether it does is an empirical question with a measurable answer,
+because the failure modes are specific. Exchangeability violations can
+hurt in three distinct currencies: marginal coverage (the average),
+conditional coverage (the average within a volatility regime), and
+transient coverage (the weeks after a structural break). Theory says
+little about how large each effect is in practice, and published
+experiments rarely separate them. We separate them by construction: we
+simulate from four return DGPs whose true conditional quantiles are
+<em>exactly</em> computable—iid, AR(1) mean, GARCH(1,1), and an abrupt
+regime break—and run an online protocol (rolling refits, sliding
+calibration window, one-step-ahead intervals) over <span
+class="math inline">14</span> methods: split conformal with absolute and
+volatility-normalized scores, conformalized quantile regression (CQR),
+Adaptive Conformal Inference (ACI) at four learning rates on both
+scores, an unconformalized quantile regression, a parametric
+Gaussian–EWMA interval, and the oracle. Every coverage number below is
+measured against known truth, and every DGP parameter is sampled from
+documented ranges and recorded.</p>
+<p>Our findings are deliberately split rather than a blanket verdict.
+Marginal coverage is far more robust to stationary dependence than the
+exchangeability caveat suggests—and far less robust to breaks.
+Conditional coverage is the real casualty, and it is repairable at
+almost no cost. The parametric benchmark every finance reader will ask
+about is genuinely narrower, but the narrowness is financed by
+under-coverage.</p>
+<h4 id="contributions.">Contributions.</h4>
+<ol>
+<li><p>A reproducible simulation framework of four financial DGPs with
+exactly computable true conditional intervals, an online evaluation
+protocol, and a fully sampled-and-recorded design (<span
+class="math inline">180</span> experiments <span
+class="math inline">\times</span> <span class="math inline">14</span>
+methods <span class="math inline">=2{,}520</span> method-rows), so
+marginal, regime-conditional, and post-break coverage are measured
+against ground truth (Sections <a href="#sec:framework"
+data-reference-type="ref" data-reference="sec:framework">4</a>–<a
+href="#sec:setup" data-reference-type="ref"
+data-reference="sec:setup">5</a>).</p></li>
+<li><p>A marginal-coverage accounting across dependence types: the
+exchangeability gap of split conformal is <span
+class="math inline">-0.005</span> <span
+class="math inline">[-0.007,-0.003]</span> under GARCH and <span
+class="math inline">-0.023</span> <span
+class="math inline">[-0.024,-0.021]</span> under abrupt breaks; ACI
+holds <span class="math inline">0.900</span> on every DGP, empirically
+confirming its distribution-free guarantee (Section <a
+href="#sec:marginal" data-reference-type="ref"
+data-reference="sec:marginal">6.1</a>).</p></li>
+<li><p>The headline conditional-coverage accounting on GARCH: the
+absolute score covers <span class="math inline">0.952/0.915/0.820</span>
+by true-volatility tercile; an EWMA-normalized score closes the spread
+from <span class="math inline">0.134</span> to <span
+class="math inline">0.040</span> (paired <span
+class="math inline">+0.094</span>), lifting high-volatility coverage by
+<span class="math inline">+0.085</span>; CQR recovers less than half as
+much (Section <a href="#sec:conditional" data-reference-type="ref"
+data-reference="sec:conditional">6.2</a>).</p></li>
+<li><p>An anatomy of the post-break coverage hole and its repairs:
+depth, duration (<span class="math inline">\approx</span> the
+calibration window), the monotone ACI <span
+class="math inline">\gamma</span>-vs-width trade-off, and the finding
+that volatility normalization alone repairs most of the hole for
+volatility breaks (Section <a href="#sec:breaks"
+data-reference-type="ref" data-reference="sec:breaks">6.3</a>).</p></li>
+<li><p>A width-at-matched-coverage comparison against a parametric
+Gaussian–EWMA baseline, plus a correction to the “Gaussian intervals
+under-cover fat tails” folklore at central coverage levels (Sections <a
+href="#sec:width" data-reference-type="ref"
+data-reference="sec:width">6.4</a>–<a href="#sec:tails"
+data-reference-type="ref" data-reference="sec:tails">6.5</a>).</p></li>
+</ol>
+<h1 id="sec:related">Related work</h1>
+<p><strong>Conformal prediction under exchangeability.</strong>
+Conformal prediction originates in the on-line compression framework of
+<span class="citation" data-cites="vovk2005algorithmic">Vovk et al.
+(2005)</span>, whose second edition consolidates two further decades of
+development <span class="citation"
+data-cites="vovk2022algorithmic">(Vovk et al. 2022)</span>. The method
+wraps any point predictor in a calibration step that converts
+nonconformity scores into prediction sets with finite-sample marginal
+coverage, requiring only exchangeability of the data—no model
+correctness, no distributional assumptions. <span class="citation"
+data-cites="shafer2008tutorial">Shafer and Vovk (2008)</span> give the
+canonical tutorial treatment, and <span class="citation"
+data-cites="angelopoulos2023conformal">Angelopoulos and Bates
+(2023)</span> provide a modern introduction oriented toward
+practitioners. The split (inductive) variant we benchmark was analyzed
+in depth by <span class="citation" data-cites="lei2018distribution">Lei
+et al. (2018)</span>, who establish distribution-free marginal validity
+for regression and, crucially for our purposes, also prove that
+<em>conditional</em> validity is unattainable in finite samples without
+further assumptions. This marginal-versus-conditional distinction is the
+fault line our experiments are designed to expose: financial returns are
+precisely the setting where marginal coverage can be honest on average
+while being systematically wrong in every volatility regime.</p>
+<p><strong>Adaptivity to heteroskedasticity.</strong> Within the
+exchangeable setting, a second line of work makes interval
+<em>width</em> responsive to the input. <span class="citation"
+data-cites="romano2019conformalized">Romano et al. (2019)</span>
+conformalize quantile regression (CQR), calibrating intervals built from
+estimated conditional quantiles and inheriting both the finite-sample
+guarantee and the local adaptivity of the base learner; locally weighted
+(normalized) nonconformity scores in <span class="citation"
+data-cites="lei2018distribution">Lei et al. (2018)</span> pursue the
+same goal by rescaling residuals with a dispersion estimate—the direct
+ancestor of the volatility-normalized conformal method we evaluate.
+<span class="citation"
+data-cites="chernozhukov2021distributional">Chernozhukov et al.
+(2021)</span> push further with distributional conformal prediction,
+ranking probability-integral-transform values rather than raw residuals;
+notably, their empirical motivation is a daily stock-return exercise in
+which the coverage of a mean-residual conformal interval collapses to
+roughly <span class="math inline">50\%</span> in high-volatility
+periods. That observation is, to our knowledge, the closest published
+precedent for our regime-stratified accounting, but it appears as a
+motivating illustration rather than a systematic study.</p>
+<p><strong>Conformal prediction beyond exchangeability.</strong> Serial
+dependence breaks exchangeability, and a substantial literature now
+relaxes it. <span class="citation"
+data-cites="chernozhukov2018exact">Chernozhukov et al. (2018)</span>
+introduce block-permutation conformal inference and prove approximate
+validity for strongly mixing time series. <span class="citation"
+data-cites="xu2021conformal">Xu and Xie (2021)</span> propose EnbPI, an
+ensemble-bootstrap construction with asymptotic marginal coverage under
+mixing errors and no data splitting. <span class="citation"
+data-cites="barber2023conformal">Barber et al. (2023)</span> drop
+exchangeability entirely, deriving a coverage gap bound for weighted
+conformal prediction governed by the total-variation distance between
+the test point and the (downweighted) calibration points. In the online
+setting, <span class="citation" data-cites="gibbs2021adaptive">Gibbs and
+Candès (2021)</span> introduce Adaptive Conformal Inference (ACI), which
+tunes the working miscoverage level by online gradient descent and
+guarantees the correct long-run coverage <em>frequency</em> for
+arbitrary, even adversarial, distribution shift; <span class="citation"
+data-cites="gibbs2024conformal">Gibbs and Candès (2024)</span>
+strengthen this to coverage guarantees that hold simultaneously over
+arbitrary subintervals and covariate subsets. <span class="citation"
+data-cites="zaffran2022adaptive">Zaffran et al. (2022)</span> analyze
+ACI’s learning-rate sensitivity on dependent series and propose the
+expert-aggregation variant AgACI. A common thread deserves emphasis:
+each relaxation purchases validity in a <em>weaker
+currency</em>—asymptotic, approximate, long-run-averaged, or
+TV-bounded—and the papers’ experiments (electricity prices, ozone,
+synthetic mixing processes) rarely interrogate what those weaker
+guarantees deliver pathwise, conditionally on a volatility regime, or in
+the window immediately following a structural break.</p>
+<p><strong>Volatility models and interval evaluation in
+econometrics.</strong> Finance has its own mature answer to predictive
+intervals. The ARCH and GARCH models of <span class="citation"
+data-cites="engle1982autoregressive">Engle (1982)</span> and <span
+class="citation" data-cites="bollerslev1986generalized">Bollerslev
+(1986)</span> yield conditional-variance forecasts whose implied
+intervals adapt to volatility clustering by construction—the natural
+parametric baseline that any conformal method applied to returns must
+beat or at least match. Equally relevant is the econometric tradition of
+<em>testing</em> interval forecasts: <span class="citation"
+data-cites="kupiec1995techniques">Kupiec (1995)</span> tests
+unconditional coverage of VaR exceptions, and <span class="citation"
+data-cites="christoffersen1998evaluating">Christoffersen (1998)</span>
+adds the conditional-coverage and independence tests that detect exactly
+the failure mode conformal marginal guarantees permit—correct average
+coverage with clustered violations. We import the spirit of that
+toolkit: our regime-stratified and post-break accounting asks
+Christoffersen’s question—is coverage right <em>conditionally</em>, not
+just on average?—but answers it against exact ground truth rather than
+through asymptotic tests on real data.</p>
+<p><strong>The gap.</strong> The two literatures pass each other by.
+Conformal-for-time-series theory papers <span class="citation"
+data-cites="chernozhukov2018exact xu2021conformal barber2023conformal gibbs2021adaptive gibbs2024conformal zaffran2022adaptive">(Chernozhukov
+et al. 2018; Xu and Xie 2021; Barber et al. 2023; Gibbs and Candès 2021,
+2024; Zaffran et al. 2022)</span> prove validity under specific
+relaxations of exchangeability and validate on whatever applications are
+at hand, while a growing body of finance-facing explainer and applied
+content simply asserts that conformal methods transfer to returns. What
+is missing is a controlled accounting: simulations from financial
+DGPs—AR, GARCH, and regime-shift processes—where the true conditional
+quantiles are known exactly, so that marginal coverage,
+volatility-regime-conditional coverage, and post-break coverage can each
+be measured against ground truth rather than proxied. Such a design
+answers questions the theory leaves open in practice: how badly split
+conformal under-covers in high-volatility regimes and over-covers in
+calm ones; how much of that gap volatility normalization and CQR
+actually recover; how many observations ACI needs to re-cover after a
+break and at what cost in interval width; and—the question finance
+practitioners actually face—whether any of this outperforms a plain
+interval from a fitted volatility model <span class="citation"
+data-cites="bollerslev1986generalized">(Bollerslev 1986)</span>, judged
+by the field’s own coverage criteria <span class="citation"
+data-cites="christoffersen1998evaluating kupiec1995techniques">(Christoffersen
+1998; Kupiec 1995)</span>. This paper supplies that accounting.</p>
+<h1 id="sec:methods">Interval methods</h1>
+<p>All methods target the central interval at nominal level <span
+class="math inline">1-\alpha</span> with <span
+class="math inline">\alpha=0.10</span>. Throughout, <span
+class="math inline">\hat\mu(x)</span> is a point forecast and <span
+class="math inline">\hat{q}_{\mathrm{lo}}(x),\hat{q}_{\mathrm{hi}}(x)</span>
+are conditional-quantile forecasts at levels <span
+class="math inline">\alpha/2</span> and <span
+class="math inline">1-\alpha/2</span>, all produced by gradient boosting
+on causal features of past returns (Section <a href="#sec:setup"
+data-reference-type="ref" data-reference="sec:setup">5</a>).</p>
+<h4 id="split-conformal-with-the-finite-sample-correction.">Split
+conformal with the finite-sample correction.</h4>
+<p>Given <span class="math inline">n</span> calibration scores <span
+class="math inline">s_1,\dots,s_n</span>, define the conformal quantile
+<span class="math display">\begin{equation}
+\hat{q}_\alpha \;=\; s_{(\lceil (1-\alpha)(n+1)\rceil)},
+\label{eq:cq}
+\end{equation}</span> the <span class="math inline">\lceil
+(1-\alpha)(n+1)\rceil</span>-th order statistic, with <span
+class="math inline">\hat{q}_\alpha=+\infty</span> when the corrected
+rank exceeds <span class="math inline">n</span> (the honest “infinite
+interval” case). With the absolute-residual score <span
+class="math inline">s_i=|y_i-\hat\mu(x_i)|</span> the interval is <span
+class="math inline">C_t=[\hat\mu(x_t)-\hat{q}_\alpha,\;\hat\mu(x_t)+\hat{q}_\alpha]</span>
+(<code>split_abs</code>). If the <span class="math inline">n+1</span>
+scores are exchangeable, <span class="math inline">1-\alpha \le
+\mathbb{P}(y_{n+1}\in C) \le 1-\alpha + 1/(n+1)</span> <span
+class="citation" data-cites="lei2018distribution">(Lei et al.
+2018)</span> (the upper bound assuming almost-surely distinct scores,
+which holds for our continuous scores); with our calibration window
+<span class="math inline">n=250</span> the theoretical coverage is <span
+class="math inline">\lceil 0.9\cdot 251\rceil/251 \approx
+0.9004</span>.</p>
+<h4 id="volatility-normalized-score.">Volatility-normalized score.</h4>
+<p>The locally weighted variant <span class="citation"
+data-cites="lei2018distribution">(Lei et al. 2018)</span> divides the
+residual by a dispersion estimate: <span
+class="math inline">s_i=|y_i-\hat\mu(x_i)|/\hat\sigma_i</span>, giving
+<span class="math inline">C_t=\hat\mu(x_t)\pm
+\hat{q}_\alpha\,\hat\sigma_t</span> (<code>split_norm</code>). We use
+the practitioner’s cheapest dispersion estimate, a RiskMetrics-style
+EWMA <span
+class="math inline">\hat\sigma_t^2=\lambda\hat\sigma_{t-1}^2+(1-\lambda)r_{t-1}^2</span>
+computed from past returns only.</p>
+<h4 id="conformalized-quantile-regression.">Conformalized quantile
+regression.</h4>
+<p>CQR <span class="citation"
+data-cites="romano2019conformalized">(Romano et al. 2019)</span> scores
+<span
+class="math inline">s_i=\max\{\hat{q}_{\mathrm{lo}}(x_i)-y_i,\;y_i-\hat{q}_{\mathrm{hi}}(x_i)\}</span>
+and reports <span
+class="math inline">C_t=[\hat{q}_{\mathrm{lo}}(x_t)-\hat{q}_\alpha,\;\hat{q}_{\mathrm{hi}}(x_t)+\hat{q}_\alpha]</span>,
+inheriting the width adaptivity of the quantile learner.</p>
+<h4 id="adaptive-conformal-inference.">Adaptive conformal
+inference.</h4>
+<p>ACI <span class="citation" data-cites="gibbs2021adaptive">(Gibbs and
+Candès 2021)</span> keeps the conformal machinery but tunes the
+<em>working level</em> <span class="math inline">\alpha_t</span> online:
+<span class="math display">\begin{equation}
+\alpha_{t+1} \;=\; \alpha_t + \gamma\,(\alpha - \mathrm{err}_t),
+\qquad
+\mathrm{err}_t = \mathbf{1}\{y_t \notin C_t\},
+\label{eq:aci}
+\end{equation}</span> so a miss (<span
+class="math inline">\mathrm{err}_t=1</span>) <em>lowers</em> <span
+class="math inline">\alpha_t</span> and widens the next interval, and a
+hit tightens it.<a href="#fn2" class="footnote-ref" id="fnref2"
+role="doc-noteref"><sup>2</sup></a> For <em>any</em> data sequence,
+<span class="math inline">|\frac{1}{T}\sum_{t\le
+T}\mathrm{err}_t-\alpha|\le
+(\max(\alpha_1,1-\alpha_1)+\gamma)/(\gamma T)</span>; at our test length
+<span class="math inline">T=1500</span> the bound is <span
+class="math inline">0.121/0.061/0.031/0.013</span> for <span
+class="math inline">\gamma=0.005/0.01/0.02/0.05</span>. We run ACI on
+top of both the absolute and the normalized score at all four <span
+class="math inline">\gamma</span> values.</p>
+<h4 id="baselines-and-oracle.">Baselines and oracle.</h4>
+<p><code>raw_qr</code> reports the unconformalized quantile-regression
+band <span
+class="math inline">[\hat{q}_{\mathrm{lo}},\hat{q}_{\mathrm{hi}}]</span>—what
+a practitioner gets by skipping calibration. <code>param_gauss</code> is
+the parametric benchmark: a Gaussian interval <span
+class="math inline">\hat\mu(x_t)\pm
+z_{1-\alpha/2}\,\hat\sigma_t^{\mathrm{QML}}</span> whose EWMA decay is
+refit on each training window by Gaussian quasi-maximum-likelihood over
+the grid <span
+class="math inline">\lambda\in\{0.80,0.81,\dots,0.99\}</span> —an
+IGARCH/RiskMetrics-style stand-in for the GARCH tradition <span
+class="citation"
+data-cites="engle1982autoregressive bollerslev1986generalized">(Engle
+1982; Bollerslev 1986)</span>. <code>oracle</code> is the DGP’s true
+conditional interval, the efficiency yardstick: all widths below are
+reported as ratios to it.</p>
+<h1 id="sec:framework">Simulation framework</h1>
+<p>Every DGP emits returns of the form <span
+class="math display">\begin{equation}
+r_t \;=\; \mu_t + \sigma_t\, z_t,
+\label{eq:dgp}
+\end{equation}</span> where <span class="math inline">z_t</span> are
+i.i.d. <em>standardized</em> (zero-mean, unit-variance)
+innovations—Gaussian, or Student-<span class="math inline">t</span> with
+<span class="math inline">\nu\in\{4,6,10\}</span> scaled by <span
+class="math inline">\sqrt{(\nu-2)/\nu}</span>—and <span
+class="math inline">(\mu_t,\sigma_t)</span> are the true conditional
+mean and standard deviation given the past. The true conditional
+interval at level <span class="math inline">1-\alpha</span> is therefore
+exactly <span class="math inline">[\mu_t+\sigma_t
+F_z^{-1}(\alpha/2),\;\mu_t+\sigma_t F_z^{-1}(1-\alpha/2)]</span> at
+every step, which is what makes coverage exactly measurable. Four
+processes span the failure modes (Figure <a href="#fig:setup"
+data-reference-type="ref" data-reference="fig:setup">1</a>):</p>
+<ul>
+<li><p><strong>iid</strong>: constant <span
+class="math inline">(\mu,\sigma)</span>—the exchangeable base case where
+the split-conformal theorem applies verbatim.</p></li>
+<li><p><strong>AR(1)</strong>: predictable mean <span
+class="math inline">\mu_t=\mu+\phi\,(r_{t-1}-\mu)</span>, constant <span
+class="math inline">\sigma</span> (dependence without
+heteroskedasticity).</p></li>
+<li><p><strong>GARCH(1,1)</strong>: <span
+class="math inline">\sigma_t^2=\omega+a\,(r_{t-1}-\mu)^2+b\,\sigma_{t-1}^2</span>
+with <span class="math inline">\omega=\sigma^2(1-a-b)</span> <span
+class="citation" data-cites="bollerslev1986generalized">(Bollerslev
+1986)</span>—volatility clustering; stationary but not exchangeable. The
+true <span class="math inline">\sigma_t</span> comes from the recursion
+itself.</p></li>
+<li><p><strong>break</strong>: iid base with an abrupt shift at step
+<span class="math inline">t^\ast</span>: <span
+class="math inline">\sigma\to\kappa\sigma</span> and/or <span
+class="math inline">\mu\to\mu+\delta</span>.</p></li>
+</ul>
+<h4 id="sampled-design-nothing-hidden.">Sampled design (nothing
+hidden).</h4>
+<p>Each experiment draws its DGP from documented ranges, all recorded in
+the released per-experiment records: base volatility <span
+class="math inline">\sigma\sim\mathrm{LogUniform}[0.005,0.02]</span> per
+step; drift <span
+class="math inline">\mu\sim\mathrm{Uniform}[-0.1\sigma,0.1\sigma]</span>;
+Student-<span class="math inline">t</span> innovations with probability
+<span class="math inline">0.5</span> (<span
+class="math inline">\nu</span> uniform on <span
+class="math inline">\{4,6,10\}</span>); <span
+class="math inline">\phi\sim\mathrm{Uniform}[0.1,0.5]</span>; <span
+class="math inline">a\sim\mathrm{Uniform}[0.05,0.20]</span> and <span
+class="math inline">b\sim\mathrm{Uniform}[0.70,0.92]</span> with <span
+class="math inline">a+b</span> capped at <span
+class="math inline">0.97</span>; break type volatility/mean/both with
+probabilities <span class="math inline">0.4/0.2/0.4</span>, volatility
+multiplier <span class="math inline">\kappa\in\{2,4\}</span>, mean shift
+<span
+class="math inline">\delta=\pm\mathrm{Uniform}[1,2]\cdot\sigma</span>,
+and break time uniform over the <span
+class="math inline">[30\%,60\%]</span> stretch of the test segment so
+post-break behavior is always observable. The full batch runs <span
+class="math inline">36/36/48/60</span> experiments on
+iid/AR(1)/GARCH/break (more where the questions live), i.e. <span
+class="math inline">180</span> experiments; realized innovation splits
+are <span class="math inline">20/16</span>, <span
+class="math inline">13/23</span>, <span
+class="math inline">31/17</span>, and <span
+class="math inline">32/28</span> Gaussian/Student-<span
+class="math inline">t</span> respectively. With <span
+class="math inline">14</span> method-rows per experiment the result set
+has <span class="math inline">2{,}520</span> rows. Everything is
+deterministic given the released seed (<span
+class="math inline">20260610</span>); the full batch takes about six
+minutes on one core.</p>
+<figure id="fig:setup" data-latex-placement="t">
+<img src="/figures/fig_setup.svg" />
+<figcaption>The testbed. (a) A GARCH(1,1) path with its <em>true</em>
+conditional <span class="math inline">90\%</span> band—known exactly
+because we simulate, so coverage is measured, not proxied. (b) An abrupt
+<span class="math inline">\times 4</span> volatility break: the oracle
+band widens instantly; the split-conformal interval (absolute residual)
+stays at pre-break width until its calibration window turns over—the
+coverage hole—while ACI (<span class="math inline">\gamma=0.05</span>)
+widens within steps by reacting to its own misses. Both panels use
+illustrative parameters that feed no quantitative result.</figcaption>
+</figure>
+<h1 id="sec:setup">Experimental setup</h1>
+<h4 id="online-protocol.">Online protocol.</h4>
+<p>Each experiment walks forward through <span
+class="math inline">1{,}500</span> test steps producing a one-step-ahead
+interval from every method at every step. The learners are refit every
+<span class="math inline">250</span> steps on the <span
+class="math inline">600</span> observations immediately preceding the
+calibration window (so a model can be up to <span
+class="math inline">{\sim}500</span> steps stale at the end of a refit
+block); the calibration set is the most recent <span
+class="math inline">250</span> nonconformity scores, re-scored under the
+model currently in force and slid forward every step (newly observed
+outcomes enter immediately). ACI states update every step from the
+realized cover/miss of their own interval, as in <span class="citation"
+data-cites="gibbs2021adaptive">Gibbs and Candès (2021)</span>. The point
+and quantile learners are gradient boosting machines (<span
+class="math inline">100</span> trees, depth <span
+class="math inline">2</span>, learning rate <span
+class="math inline">0.08</span>; quantile loss for <span
+class="math inline">\hat{q}_{\mathrm{lo}},\hat{q}_{\mathrm{hi}}</span>)
+over strictly causal features: five lagged returns, <span
+class="math inline">|r_{t-1}|</span>, a rolling mean, rolling standard
+deviations over windows <span class="math inline">5</span> and <span
+class="math inline">20</span>, and an EWMA volatility. The EWMA decay
+used by the normalized score is itself sampled per experiment, <span
+class="math inline">\lambda\sim\mathrm{Uniform}[0.90,0.97]</span>, so
+results do not hinge on a tuned constant. The true <span
+class="math inline">(\mu_t,\sigma_t)</span> are used only for scoring
+and the oracle; no learner ever sees them.</p>
+<h4 id="metrics.">Metrics.</h4>
+<p>For each experiment and method we record marginal coverage; mean
+width as a per-step ratio to the oracle width; coverage and width
+stratified by <em>true</em>-volatility tercile (terciles of <span
+class="math inline">\sigma_t</span> within the test path—defined
+whenever <span class="math inline">\sigma_t</span> varies); the tercile
+coverage spread (max minus min); for break experiments, coverage in the
+event-time windows <span class="math inline">0</span>–<span
+class="math inline">60</span>, <span class="math inline">60</span>–<span
+class="math inline">150</span>, <span
+class="math inline">150</span>–<span class="math inline">300</span>,
+<span class="math inline">300</span>–<span
+class="math inline">600</span> after the break, the <em>hole depth</em>
+(minimum of the rolling-<span class="math inline">60</span>-step
+coverage after the break), and the <em>recovery time</em> (first step at
+which rolling-<span class="math inline">60</span> coverage returns above
+<span class="math inline">1-\alpha-0.03=0.87</span>); and the fraction
+of unbounded (infinite) intervals, which only ACI can produce.
+Aggregates are means over experiments with normal-approximation <span
+class="math inline">95\%</span> confidence intervals; paired method
+comparisons difference the per-experiment values. We never report an
+aggregate whose stratified breakdown reverses it.</p>
+<h1 id="sec:results">Results</h1>
+<h2 id="sec:marginal">Marginal coverage survives stationary dependence
+almost exactly</h2>
+<p>Table <a href="#tab:marginal" data-reference-type="ref"
+data-reference="tab:marginal">1</a> and Figure <a href="#fig:marginal"
+data-reference-type="ref" data-reference="fig:marginal">2</a> give the
+marginal accounting. On iid data split conformal delivers its theorem:
+coverage <span class="math inline">0.901</span> against the theoretical
+<span class="math inline">0.9004</span>. The interesting cells are the
+non-exchangeable ones. Under AR(1) dependence the gap is statistically
+invisible (<span class="math inline">+0.001</span>, with a CI of <span
+class="math inline">[-0.000,+0.003]</span> that includes zero). Under
+GARCH—where consecutive scores are strongly dependent through the
+volatility state—the gap is real but tiny: coverage <span
+class="math inline">0.895</span>, a gap of <span
+class="math inline">-0.005</span> <span
+class="math inline">[-0.007,-0.003]</span>. For marginal coverage under
+<em>stationary</em> dependence, the exchangeability caveat is, at this
+sample size, a rounding error.</p>
+<p>Breaks are different in kind: split-absolute drops to <span
+class="math inline">0.877</span> (gap <span
+class="math inline">-0.023</span> <span
+class="math inline">[-0.024,-0.021]</span>)—modest on average only
+because the test window is long; Section <a href="#sec:breaks"
+data-reference-type="ref" data-reference="sec:breaks">6.3</a> shows the
+damage is concentrated. Three further observations. First, ACI is the
+marginal-coverage instrument its theorem promises: across every DGP,
+score, and <span class="math inline">\gamma</span>, its coverage lies in
+<span class="math inline">[0.900,0.901]</span>—deviations from nominal
+at least an order of magnitude inside the worst-case bounds of
+Section <a href="#sec:methods" data-reference-type="ref"
+data-reference="sec:methods">3</a>. Second, the <em>normalized</em>
+split conformal is marginally clean everywhere <em>including</em> breaks
+(<span class="math inline">0.902</span>): the EWMA proxy in the score
+tracks the volatility jump within steps, so the calibration distribution
+barely moves. Third, conformalization is doing real work: the raw
+quantile-regression band under-covers everywhere (<span
+class="math inline">0.884/0.882/0.875</span> on iid/AR(1)/GARCH) and
+collapses to <span class="math inline">0.753</span> on breaks, and the
+parametric Gaussian–EWMA baseline under-covers on three of four DGPs
+(<span class="math inline">0.891/0.881/0.883</span> on
+iid/GARCH/break).</p>
+<div id="tab:marginal">
+<table>
+<caption>Marginal coverage by method and DGP (nominal <span
+class="math inline">0.90</span>; mean over experiments). All eight ACI
+variants (<span
+class="math inline">\gamma\in\{0.005,0.01,0.02,0.05\}</span>, both
+scores) lie in <span class="math inline">[0.900,0.901]</span> on every
+DGP; the two <span class="math inline">\gamma=0.01</span> rows are
+shown. Oracle coverage deviates from <span
+class="math inline">0.900</span> only by Monte-Carlo noise.</caption>
+<thead>
+<tr>
+<th style="text-align: left;">Method</th>
+<th style="text-align: center;">iid</th>
+<th style="text-align: center;">AR(1)</th>
+<th style="text-align: center;">GARCH</th>
+<th style="text-align: center;">break</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Oracle (true quantiles)</td>
+<td style="text-align: center;">0.899</td>
+<td style="text-align: center;">0.901</td>
+<td style="text-align: center;">0.898</td>
+<td style="text-align: center;">0.902</td>
+</tr>
+<tr>
+<td style="text-align: left;">Split conformal (absolute)</td>
+<td style="text-align: center;">0.901</td>
+<td style="text-align: center;">0.901</td>
+<td style="text-align: center;">0.895</td>
+<td style="text-align: center;">0.877</td>
+</tr>
+<tr>
+<td style="text-align: left;">Split conformal (normalized)</td>
+<td style="text-align: center;">0.900</td>
+<td style="text-align: center;">0.902</td>
+<td style="text-align: center;">0.901</td>
+<td style="text-align: center;">0.902</td>
+</tr>
+<tr>
+<td style="text-align: left;">CQR</td>
+<td style="text-align: center;">0.901</td>
+<td style="text-align: center;">0.901</td>
+<td style="text-align: center;">0.896</td>
+<td style="text-align: center;">0.878</td>
+</tr>
+<tr>
+<td style="text-align: left;">ACI, abs. score (<span
+class="math inline">\gamma{=}0.01</span>)</td>
+<td style="text-align: center;">0.900</td>
+<td style="text-align: center;">0.900</td>
+<td style="text-align: center;">0.901</td>
+<td style="text-align: center;">0.900</td>
+</tr>
+<tr>
+<td style="text-align: left;">ACI, norm. score (<span
+class="math inline">\gamma{=}0.01</span>)</td>
+<td style="text-align: center;">0.900</td>
+<td style="text-align: center;">0.900</td>
+<td style="text-align: center;">0.900</td>
+<td style="text-align: center;">0.900</td>
+</tr>
+<tr>
+<td style="text-align: left;">Raw quantile regression</td>
+<td style="text-align: center;">0.884</td>
+<td style="text-align: center;">0.882</td>
+<td style="text-align: center;">0.875</td>
+<td style="text-align: center;">0.753</td>
+</tr>
+<tr>
+<td style="text-align: left;">Parametric Gauss–EWMA</td>
+<td style="text-align: center;">0.891</td>
+<td style="text-align: center;">0.906</td>
+<td style="text-align: center;">0.881</td>
+<td style="text-align: center;">0.883</td>
+</tr>
+</tbody>
+</table>
+</div>
+<figure id="fig:marginal" data-latex-placement="t">
+<img src="/figures/fig_marginal_coverage.svg" />
+<figcaption>Marginal coverage by method and DGP with <span
+class="math inline">95\%</span> confidence intervals over experiments
+(ACI omitted from the plot; it sits at <span
+class="math inline">0.900</span> everywhere, Table <a
+href="#tab:marginal" data-reference-type="ref"
+data-reference="tab:marginal">1</a>). Stationary dependence (AR(1),
+GARCH) barely moves the conformal methods; the break DGP dents the
+absolute-score and CQR intervals and devastates the unconformalized
+quantile regression.</figcaption>
+</figure>
+<h2 id="sec:conditional">Conditional coverage is where it breaks—and
+normalization is the cheap fix</h2>
+<p>Marginal honesty can hide conditional dishonesty <span
+class="citation"
+data-cites="lei2018distribution christoffersen1998evaluating">(Lei et
+al. 2018; Christoffersen 1998)</span>. Stratifying GARCH coverage by the
+<em>true</em>-volatility tercile of each step (Table <a
+href="#tab:conditional" data-reference-type="ref"
+data-reference="tab:conditional">2</a>, Figure <a
+href="#fig:conditional" data-reference-type="ref"
+data-reference="fig:conditional">3</a>) exposes the headline failure:
+split conformal with the absolute score covers <span
+class="math inline">0.952/0.915/0.820</span> across
+low/mid/high-volatility terciles—a spread of <span
+class="math inline">0.134</span>. The mechanism is structural, not
+statistical: the absolute score produces an (essentially) constant-width
+interval, which is <span class="math inline">1.39\times</span> the
+oracle width in the calm tercile and <span
+class="math inline">0.89\times</span> in the volatile one. The interval
+is too wide exactly when wide intervals are cheap and too narrow exactly
+when a position sizer needs the stated guarantee—under-covering by <span
+class="math inline">8</span> points at nominal <span
+class="math inline">90\%</span>.</p>
+<p>Normalizing the score by the EWMA volatility closes most of the gap:
+<span class="math inline">0.893/0.905/0.905</span>, spread <span
+class="math inline">0.040</span>. The paired per-experiment spread
+reduction is <span class="math inline">+0.094</span> <span
+class="math inline">[+0.076,+0.112]</span>, and the paired
+high-volatility coverage gain is <span class="math inline">+0.085</span>
+<span class="math inline">[+0.077,+0.093]</span>. CQR, often recommended
+as <em>the</em> heteroskedasticity fix, is only a partial one here:
+<span class="math inline">0.937/0.906/0.846</span>, spread <span
+class="math inline">0.093</span>, a paired spread reduction of <span
+class="math inline">+0.041</span> <span
+class="math inline">[+0.034,+0.049]</span> and a high-volatility gain of
+<span class="math inline">+0.027</span> <span
+class="math inline">[+0.021,+0.033]</span>—its gradient-boosted quantile
+learners react to the volatility features too sluggishly, leaving
+high-volatility intervals at <span class="math inline">0.90\times</span>
+the oracle width. Two honest footnotes to the headline. The oracle
+itself shows a measured spread of <span
+class="math inline">0.022</span>—the sampling floor of the metric,
+against which the normalized score’s <span
+class="math inline">0.040</span> should be read. And ACI with an
+aggressive learning rate (<span class="math inline">\gamma=0.05</span>,
+absolute score) also flattens the terciles (<span
+class="math inline">0.896/0.899/0.907</span>, spread <span
+class="math inline">0.028</span>) by construction—it chases its own
+misses—but does so at the price of <span
+class="math inline">3.2\%</span> unbounded intervals on GARCH and a
+width that swings with the regime rather than tracking it.</p>
+<div id="tab:conditional">
+<table>
+<caption>Conditional coverage by true-volatility tercile on the GARCH
+DGP (<span class="math inline">48</span> experiments; nominal <span
+class="math inline">0.90</span>). Spread is the per-experiment max–min
+tercile coverage, averaged. Width ratios are relative to the oracle
+interval within the tercile. The oracle row gives the sampling floor of
+both the spread and the width metric.</caption>
+<thead>
+<tr>
+<th style="text-align: left;"></th>
+<th colspan="3" style="text-align: center;">Coverage by tercile</th>
+<th style="text-align: center;"></th>
+<th colspan="2" style="text-align: center;">Width / oracle</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><span>2-4</span>(lr)<span>6-7</span>
+Method</td>
+<td style="text-align: center;">low</td>
+<td style="text-align: center;">mid</td>
+<td style="text-align: center;">high</td>
+<td style="text-align: center;">spread</td>
+<td style="text-align: center;">low</td>
+<td style="text-align: center;">high</td>
+</tr>
+<tr>
+<td style="text-align: left;">Oracle</td>
+<td style="text-align: center;">0.897</td>
+<td style="text-align: center;">0.896</td>
+<td style="text-align: center;">0.901</td>
+<td style="text-align: center;">0.022</td>
+<td style="text-align: center;">1.00</td>
+<td style="text-align: center;">1.00</td>
+</tr>
+<tr>
+<td style="text-align: left;">Split conformal (absolute)</td>
+<td style="text-align: center;">0.952</td>
+<td style="text-align: center;">0.915</td>
+<td style="text-align: center;">0.820</td>
+<td style="text-align: center;">0.134</td>
+<td style="text-align: center;">1.39</td>
+<td style="text-align: center;">0.89</td>
+</tr>
+<tr>
+<td style="text-align: left;">Split conformal (normalized)</td>
+<td style="text-align: center;">0.893</td>
+<td style="text-align: center;">0.905</td>
+<td style="text-align: center;">0.905</td>
+<td style="text-align: center;">0.040</td>
+<td style="text-align: center;">1.06</td>
+<td style="text-align: center;">1.10</td>
+</tr>
+<tr>
+<td style="text-align: left;">CQR</td>
+<td style="text-align: center;">0.937</td>
+<td style="text-align: center;">0.906</td>
+<td style="text-align: center;">0.846</td>
+<td style="text-align: center;">0.093</td>
+<td style="text-align: center;">1.24</td>
+<td style="text-align: center;">0.90</td>
+</tr>
+<tr>
+<td style="text-align: left;">ACI, abs. score (<span
+class="math inline">\gamma{=}0.05</span>)</td>
+<td style="text-align: center;">0.896</td>
+<td style="text-align: center;">0.899</td>
+<td style="text-align: center;">0.907</td>
+<td style="text-align: center;">0.028</td>
+<td style="text-align: center;">1.08</td>
+<td style="text-align: center;">1.11</td>
+</tr>
+<tr>
+<td style="text-align: left;">Raw quantile regression</td>
+<td style="text-align: center;">0.928</td>
+<td style="text-align: center;">0.887</td>
+<td style="text-align: center;">0.808</td>
+<td style="text-align: center;">0.120</td>
+<td style="text-align: center;">1.17</td>
+<td style="text-align: center;">0.81</td>
+</tr>
+<tr>
+<td style="text-align: left;">Parametric Gauss–EWMA</td>
+<td style="text-align: center;">0.873</td>
+<td style="text-align: center;">0.889</td>
+<td style="text-align: center;">0.883</td>
+<td style="text-align: center;">0.036</td>
+<td style="text-align: center;">0.99</td>
+<td style="text-align: center;">1.01</td>
+</tr>
+</tbody>
+</table>
+</div>
+<figure id="fig:conditional" data-latex-placement="t">
+<img src="/figures/fig_conditional_coverage.svg" />
+<figcaption>Conditional coverage by true-volatility tercile on the GARCH
+DGP (<span class="math inline">95\%</span> CIs over experiments). The
+absolute-score split conformal over-covers calm regimes and under-covers
+volatile ones; the volatility-normalized score is nearly flat at
+nominal; CQR closes less than half the gap; the parametric Gauss–EWMA
+baseline is flat but sits uniformly below nominal.</figcaption>
+</figure>
+<h2 id="sec:breaks">Breaks: the coverage hole, and what ACI buys</h2>
+<p>Table <a href="#tab:break" data-reference-type="ref"
+data-reference="tab:break">3</a> and Figure <a href="#fig:break"
+data-reference-type="ref" data-reference="fig:break">4</a> dissect the
+break DGP in event time. Split conformal with the absolute score covers
+only <span class="math inline">0.562</span> over the first <span
+class="math inline">60</span> post-break steps; its average hole depth
+(minimum rolling-<span class="math inline">60</span> coverage) is <span
+class="math inline">0.543</span> <span
+class="math inline">[0.516,0.571]</span>. The hole is transient by
+mechanism: the calibration window (<span class="math inline">250</span>
+steps) gradually fills with post-break scores, and the rolling coverage
+is back above <span class="math inline">0.87</span> after a median of
+<span class="math inline">191</span> steps and fully at nominal by steps
+<span class="math inline">300</span>–<span
+class="math inline">600</span> (<span class="math inline">0.901</span>).
+CQR behaves identically (<span class="math inline">0.559</span>
+first-<span class="math inline">60</span>): conformalizing a quantile
+learner does not help when the calibration distribution itself is stale.
+For calibration, note the oracle’s own hole depth is <span
+class="math inline">0.801</span> and its recovery time is <span
+class="math inline">60</span> (the metric’s floor): rolling-<span
+class="math inline">60</span> coverage dips that low on <span
+class="math inline">90\%</span>-level Bernoulli noise alone.</p>
+<p>The two repairs work, differently. <em>Normalization</em> alone lifts
+the first-<span class="math inline">60</span> coverage to <span
+class="math inline">0.851</span>: <span class="math inline">50</span> of
+our <span class="math inline">60</span> realized breaks move volatility,
+the EWMA proxy reacts within steps, and the normalized calibration
+scores stay nearly exchangeable across the break. <em>ACI</em> repairs
+by feedback, and its learning rate buys speed monotonically: first-<span
+class="math inline">60</span> coverage <span
+class="math inline">0.700/0.777/0.839/0.875</span> for <span
+class="math inline">\gamma=0.005/0.01/0.02/0.05</span> on the absolute
+score, with recovery medians shrinking <span
+class="math inline">93.5/77/66/61</span> steps. The price is width
+(<span class="math inline">1.12</span>–<span
+class="math inline">1.14\times</span> oracle on the break DGP, versus
+<span class="math inline">1.05\times</span> for plain split-absolute),
+occasional unbounded intervals (<span class="math inline">3.0\%</span>
+of steps at <span class="math inline">\gamma=0.05</span>), and post-hole
+<em>over</em>-coverage while the loop pays back its debt (up to <span
+class="math inline">0.935</span> at steps <span
+class="math inline">150</span>–<span class="math inline">300</span> for
+<span class="math inline">\gamma=0.005</span>)—the long-run average is
+protected by oscillation, not by clairvoyance <span class="citation"
+data-cites="gibbs2021adaptive zaffran2022adaptive">(Gibbs and Candès
+2021; Zaffran et al. 2022)</span>. Stacking the fixes is best: ACI on
+the <em>normalized</em> score at <span
+class="math inline">\gamma=0.01</span> reaches <span
+class="math inline">0.875</span> in the first <span
+class="math inline">60</span> steps and <span
+class="math inline">0.924</span> at <span
+class="math inline">60</span>–<span class="math inline">150</span>; at
+<span class="math inline">\gamma=0.05</span> it shows essentially no
+hole at all (<span class="math inline">0.900</span> first-<span
+class="math inline">60</span>; hole depth <span
+class="math inline">0.847</span>, shallower than the oracle’s own <span
+class="math inline">0.801</span> noise floor) for <span
+class="math inline">1.19\times</span> oracle width and <span
+class="math inline">0.7\%</span> unbounded steps. The unconformalized
+quantile regression, for contrast, never really recovers: <span
+class="math inline">0.459</span> in the first <span
+class="math inline">60</span> steps, still <span
+class="math inline">0.671</span> at <span
+class="math inline">300</span>–<span class="math inline">600</span>, and
+only <span class="math inline">86.7\%</span> of its paths ever regain
+the <span class="math inline">0.87</span> threshold.</p>
+<div id="tab:break">
+<table>
+<caption>Post-break behavior on the break DGP (<span
+class="math inline">60</span> experiments). Event-time coverage windows
+are steps since the break; hole depth is the minimum rolling-<span
+class="math inline">60</span> coverage after the break; recovery is the
+median first step at which rolling-<span class="math inline">60</span>
+coverage returns above <span class="math inline">0.87</span> (<span
+class="math inline">60</span> is the metric’s floor), computed among
+runs that recover, with the recovered fraction reported alongside; width
+is the mean ratio to the oracle over the bounded steps of the test
+segment (the unbounded fraction is reported separately). The oracle row
+calibrates the noise floor of the event-time metrics.</caption>
+<thead>
+<tr>
+<th style="text-align: left;"></th>
+<th colspan="3" style="text-align: center;">Coverage in window</th>
+<th style="text-align: center;"></th>
+<th style="text-align: center;"></th>
+<th style="text-align: center;"></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><span>2-4</span> Method</td>
+<td style="text-align: center;">0–60</td>
+<td style="text-align: center;">60–150</td>
+<td style="text-align: center;">300–600</td>
+<td style="text-align: center;">hole</td>
+<td style="text-align: center;">recovery</td>
+<td style="text-align: center;">width</td>
+</tr>
+<tr>
+<td style="text-align: left;">Oracle</td>
+<td style="text-align: center;">0.896</td>
+<td style="text-align: center;">0.910</td>
+<td style="text-align: center;">0.896</td>
+<td style="text-align: center;">0.801</td>
+<td style="text-align: center;">60</td>
+<td style="text-align: center;">1.00</td>
+</tr>
+<tr>
+<td style="text-align: left;">Split conformal (absolute)</td>
+<td style="text-align: center;">0.562</td>
+<td style="text-align: center;">0.764</td>
+<td style="text-align: center;">0.901</td>
+<td style="text-align: center;">0.543</td>
+<td style="text-align: center;">191</td>
+<td style="text-align: center;">1.05</td>
+</tr>
+<tr>
+<td style="text-align: left;">Split conformal (normalized)</td>
+<td style="text-align: center;">0.851</td>
+<td style="text-align: center;">0.922</td>
+<td style="text-align: center;">0.903</td>
+<td style="text-align: center;">0.816</td>
+<td style="text-align: center;">64.5</td>
+<td style="text-align: center;">1.14</td>
+</tr>
+<tr>
+<td style="text-align: left;">CQR</td>
+<td style="text-align: center;">0.559</td>
+<td style="text-align: center;">0.771</td>
+<td style="text-align: center;">0.902</td>
+<td style="text-align: center;">0.540</td>
+<td style="text-align: center;">190.5</td>
+<td style="text-align: center;">1.03</td>
+</tr>
+<tr>
+<td style="text-align: left;">ACI abs., <span
+class="math inline">\gamma{=}0.005</span></td>
+<td style="text-align: center;">0.700</td>
+<td style="text-align: center;">0.909</td>
+<td style="text-align: center;">0.916</td>
+<td style="text-align: center;">0.694</td>
+<td style="text-align: center;">93.5</td>
+<td style="text-align: center;">1.12</td>
+</tr>
+<tr>
+<td style="text-align: left;">ACI abs., <span
+class="math inline">\gamma{=}0.01</span></td>
+<td style="text-align: center;">0.777</td>
+<td style="text-align: center;">0.923</td>
+<td style="text-align: center;">0.906</td>
+<td style="text-align: center;">0.771</td>
+<td style="text-align: center;">77</td>
+<td style="text-align: center;">1.12</td>
+</tr>
+<tr>
+<td style="text-align: left;">ACI abs., <span
+class="math inline">\gamma{=}0.02</span></td>
+<td style="text-align: center;">0.839</td>
+<td style="text-align: center;">0.914</td>
+<td style="text-align: center;">0.902</td>
+<td style="text-align: center;">0.819</td>
+<td style="text-align: center;">66</td>
+<td style="text-align: center;">1.12</td>
+</tr>
+<tr>
+<td style="text-align: left;">ACI abs., <span
+class="math inline">\gamma{=}0.05</span></td>
+<td style="text-align: center;">0.875</td>
+<td style="text-align: center;">0.907</td>
+<td style="text-align: center;">0.901</td>
+<td style="text-align: center;">0.843</td>
+<td style="text-align: center;">61</td>
+<td style="text-align: center;">1.14</td>
+</tr>
+<tr>
+<td style="text-align: left;">ACI norm., <span
+class="math inline">\gamma{=}0.01</span></td>
+<td style="text-align: center;">0.875</td>
+<td style="text-align: center;">0.924</td>
+<td style="text-align: center;">0.898</td>
+<td style="text-align: center;">0.820</td>
+<td style="text-align: center;">60</td>
+<td style="text-align: center;">1.14</td>
+</tr>
+<tr>
+<td style="text-align: left;">Raw quantile regression</td>
+<td style="text-align: center;">0.459</td>
+<td style="text-align: center;">0.445</td>
+<td style="text-align: center;">0.671</td>
+<td style="text-align: center;">0.326</td>
+<td style="text-align: center;">601.5</td>
+<td style="text-align: center;">0.81</td>
+</tr>
+<tr>
+<td style="text-align: left;">Parametric Gauss–EWMA</td>
+<td style="text-align: center;">0.664</td>
+<td style="text-align: center;">0.823</td>
+<td style="text-align: center;">0.903</td>
+<td style="text-align: center;">0.647</td>
+<td style="text-align: center;">149.5</td>
+<td style="text-align: center;">1.09</td>
+</tr>
+</tbody>
+</table>
+</div>
+<figure id="fig:break" data-latex-placement="t">
+<img src="/figures/fig_break_aci.svg" />
+<figcaption>Event-time coverage around the break (rolling <span
+class="math inline">60</span> steps, averaged over the <span
+class="math inline">60</span> break experiments; legend gives each
+method’s mean width-to-oracle ratio). (a) Split-absolute and CQR dig the
+same deep hole and climb out only as the calibration window turns over;
+volatility normalization almost removes the hole; the parametric
+Gauss–EWMA falls in between. (b) ACI on the absolute score: repair speed
+is monotone in <span class="math inline">\gamma</span>, and the
+small-<span class="math inline">\gamma</span> variants overshoot above
+nominal after the hole while the long-run average is
+restored.</figcaption>
+</figure>
+<h2 id="sec:width">Width at matched coverage: what honesty costs, and
+what narrowness hides</h2>
+<p>Coverage comparisons are only meaningful at matched coverage, so we
+compare widths among methods whose marginal coverage falls in the band
+<span class="math inline">[0.885,0.915]</span>, separately by DGP and
+innovation family. On GARCH—the economically central case—the conformal
+premium over the oracle width is: split-absolute <span
+class="math inline">1.15\times</span> (Gaussian innovations) and <span
+class="math inline">1.13\times</span> (Student-<span
+class="math inline">t</span>); normalized <span
+class="math inline">1.09\times</span>/<span
+class="math inline">1.08\times</span>; CQR <span
+class="math inline">1.08\times</span>/<span
+class="math inline">1.06\times</span>. The parametric Gauss–EWMA
+baseline is the narrowest interval in the comparison, <span
+class="math inline">0.99\times</span>/<span
+class="math inline">1.03\times</span>—but its coverage there is <span
+class="math inline">0.878</span>/<span class="math inline">0.888</span>,
+below the band’s lower edge in the Gaussian cell and barely inside it
+under Student-<span class="math inline">t</span>. Its narrowness is not
+efficiency; it is under-coverage wearing efficiency’s clothes. The
+unconformalized quantile regression tells the same story at <span
+class="math inline">0.99\times</span> width and <span
+class="math inline">0.871</span>–<span class="math inline">0.880</span>
+coverage. Across all eight DGP<span
+class="math inline">\times</span>innovation cells, no method inside the
+coverage band is narrower than the oracle.</p>
+<p>Two practical readings. First, on heteroskedastic data the normalized
+score is not just the conditional-coverage fix (Section <a
+href="#sec:conditional" data-reference-type="ref"
+data-reference="sec:conditional">6.2</a>)—it is also <em>cheaper</em>
+than the absolute score at matched marginal coverage (<span
+class="math inline">1.08</span>–<span
+class="math inline">1.09\times</span> vs <span
+class="math inline">1.13</span>–<span
+class="math inline">1.15\times</span>), because matching the oracle’s
+shape lets it match the oracle’s average width more closely. There is no
+width-vs-honesty trade-off in choosing it. Second, the honest premium
+for distribution-free finite-sample coverage on GARCH is roughly <span
+class="math inline">6</span>–<span class="math inline">9\%</span> of
+interval width (normalized or CQR) over an oracle no real forecaster
+possesses—a modest insurance premium against the parametric
+alternative’s silent <span class="math inline">1</span>–<span
+class="math inline">2</span>-point coverage shortfall.</p>
+<h2 id="sec:tails">Fat tails are not why the Gaussian baseline fails at
+90%</h2>
+<p>A folklore argument says Gaussian intervals under-cover financial
+returns because returns are fat-tailed. At the <span
+class="math inline">90\%</span> level this is backwards. The central
+<span class="math inline">90\%</span> interval is set by the <span
+class="math inline">0.95</span> quantile, and for <em>standardized</em>
+(unit-variance) Student-<span class="math inline">t</span> innovations
+that quantile is <em>smaller</em> than the Gaussian <span
+class="math inline">1.645</span>: <span
+class="math inline">1.507/1.587/1.621</span> for <span
+class="math inline">\nu=4/6/10</span>. Fat tails move mass from the
+shoulders to both the tails and the center; at central coverage levels
+the center wins, and a correctly-scaled Gaussian interval
+<em>over</em>-covers. The ordering only flips deep in the tails (at the
+<span class="math inline">0.995</span> quantile: <span
+class="math inline">3.256</span> vs. <span
+class="math inline">2.576</span> for <span
+class="math inline">\nu=4</span>), which is where the folklore
+belongs—VaR at <span class="math inline">99\%</span>+, not <span
+class="math inline">90\%</span> intervals.</p>
+<p>Our measurements bear this out: the parametric baseline covers
+slightly <em>more</em> under Student-<span class="math inline">t</span>
+innovations than under Gaussian ones (<span
+class="math inline">0.894</span> vs. <span
+class="math inline">0.888</span> on iid; <span
+class="math inline">0.888</span> vs. <span
+class="math inline">0.878</span> on GARCH), the opposite of the
+folklore’s prediction. Its under-coverage is instead driven by
+volatility dynamics—estimation noise in the EWMA filter on iid data,
+filter lag under GARCH, and stale variance after breaks (<span
+class="math inline">0.664</span> in the first <span
+class="math inline">60</span> post-break steps)—failure modes that
+conformal calibration absorbs and a plug-in <span
+class="math inline">z</span>-score does not. Practitioners patching a
+Gaussian interval for “fat tails” at the <span
+class="math inline">90\%</span> level are treating the wrong
+disease.</p>
+<h1 id="sec:discussion">Discussion</h1>
+<h4 id="a-practical-recipe.">A practical recipe.</h4>
+<p>The results compose into a simple default for return intervals at
+central coverage levels. (1) Always conformalize: the raw
+quantile-regression band gives up <span
+class="math inline">1.6</span>–<span class="math inline">2.5</span>
+coverage points on stationary DGPs and <span
+class="math inline">15</span> points after breaks, while calibration
+costs one data split. (2) Normalize the score by a volatility proxy—even
+a fixed-decay EWMA. It closes the conditional-coverage spread from <span
+class="math inline">0.134</span> to <span
+class="math inline">0.040</span>, repairs most of the volatility-break
+hole (<span class="math inline">0.851</span> vs. <span
+class="math inline">0.562</span> first-<span
+class="math inline">60</span> coverage), keeps marginal coverage at
+nominal on every DGP we tested, and is <em>narrower</em> than the
+absolute score at matched coverage on heteroskedastic data. It is the
+rare free lunch in this menu. (3) If regime breaks are a first-order
+concern, add ACI on top of the normalized score, choosing <span
+class="math inline">\gamma</span> by the hole-vs-oscillation trade-off
+of Table <a href="#tab:break" data-reference-type="ref"
+data-reference="tab:break">3</a>; <span
+class="math inline">\gamma\approx0.01</span> already cuts the hole
+substantially at negligible marginal-width cost, and <span
+class="math inline">\gamma=0.05</span> eliminates it at <span
+class="math inline">{\sim}1.19\times</span> oracle width with a small
+fraction of unbounded steps that a deployment must handle (cap the width
+or abstain). CQR is a reasonable method, but on these DGPs it neither
+matches the normalized score conditionally nor survives breaks better
+than the absolute score, so it is not the first tool we would reach
+for.</p>
+<h4 id="what-conformal-buys-against-a-parametric-volatility-model.">What
+conformal buys against a parametric volatility model.</h4>
+<p>The Gauss–EWMA baseline embodies the econometric default: model the
+variance, plug in a quantile. When its assumptions are close to true it
+is the narrowest interval on offer—and it still under-covered in six of
+our eight DGP<span class="math inline">\times</span>innovation cells,
+because estimation noise, filter lag, and breaks all push the same
+direction and nothing in the plug-in construction pushes back. Conformal
+calibration is exactly that counter-pressure: it converts
+<em>whatever</em> interval shape one believes in (including the
+parametric one) into a coverage-honest version of itself for a <span
+class="math inline">6</span>–<span class="math inline">9\%</span> width
+premium. The right mental model is not “conformal vs. GARCH” but
+“calibrated vs. uncalibrated”: normalize by the best volatility estimate
+available, then let the calibration set vote on the quantile. When the
+volatility model is good, the premium is small; when it is wrong, the
+calibration step is what keeps the stated <span
+class="math inline">90\%</span> meaning <span
+class="math inline">90\%</span>—marginally always, conditionally if the
+normalizer tracks the regime, and after breaks if ACI is listening.</p>
+<h1 id="sec:limitations">Limitations</h1>
+<p>Everything here is simulation, by design: exact conditional truth is
+the point of the paper and is unobtainable on market data. The cost is a
+list of simplifications, all visible in the released code. The DGP
+menu—iid, AR(1) mean, GARCH(1,1), single abrupt break, with Gaussian or
+standardized Student-<span class="math inline">t</span>
+innovations—omits leverage effects, jumps, skewed innovations, long
+memory, and recurring or gradual regime shifts. We study one asset and
+one horizon (one-step-ahead); cross-sectional and multi-horizon
+questions are out of scope. The learners are gradient-boosting machines
+with fixed, untuned hyperparameters (<span
+class="math inline">100</span> trees, depth <span
+class="math inline">2</span>, learning rate <span
+class="math inline">0.08</span>); a stronger or better-tuned quantile
+learner would likely improve CQR specifically, and our ranking of CQR
+versus the normalized score should be read with that asymmetry in mind.
+The online protocol fixes one cadence (refit every <span
+class="math inline">250</span> steps, train <span
+class="math inline">600</span>, calibrate <span
+class="math inline">250</span>); the post-break recovery time scales
+with the calibration window by mechanism, so these constants shape the
+transient results. The parametric baseline is a QML-fitted EWMA filter,
+not a full GARCH(1,1) maximum-likelihood fit; on the GARCH DGP a
+correctly-specified MLE baseline would be stronger, though it would not
+change the structural point that plug-in intervals lack a calibration
+feedback. The nominal level is <span class="math inline">0.90</span>
+throughout; at deeper tail levels (e.g. <span
+class="math inline">99\%</span>+) the fat-tail ordering of Section <a
+href="#sec:tails" data-reference-type="ref"
+data-reference="sec:tails">6.5</a> reverses and several conclusions
+about the Gaussian baseline would quantitatively change. Finally,
+confidence intervals are normal approximations over independent
+experiments, appropriate for the <span
+class="math inline">36</span>–<span class="math inline">60</span>
+replications per DGP but not a substitute for exact inference.</p>
+<h1 id="sec:conclusion">Conclusion</h1>
+<p>We measured what conformal prediction actually delivers on
+financial-return DGPs where the truth is known. Marginal coverage
+survives stationary dependence almost exactly—the exchangeability gap is
+<span class="math inline">-0.005</span> under GARCH and invisible under
+AR(1)—so the common warning that serial dependence voids conformal
+guarantees is, marginally and at this scale, overstated. What breaks is
+everything a risk manager actually cares about beyond the average: the
+absolute-score interval under-covers high-volatility regimes by <span
+class="math inline">8</span> points while over-covering calm ones by
+<span class="math inline">5</span>, and abrupt breaks open a coverage
+hole that reaches <span class="math inline">0.562</span> over the first
+<span class="math inline">60</span> steps and heals only as fast as the
+calibration window. Both failures have cheap, composable fixes: an
+EWMA-normalized score (spread <span
+class="math inline">0.134\to0.040</span>; hole <span
+class="math inline">0.562\to0.851</span>; marginal coverage intact
+everywhere; narrower at matched coverage), and ACI for the residual
+break risk (hole repair monotone in <span
+class="math inline">\gamma</span> at a <span
+class="math inline">1.12</span>–<span
+class="math inline">1.14\times</span> width cost, long-run coverage
+<span class="math inline">0.900</span> by theorem and by measurement).
+The parametric Gaussian–EWMA alternative is narrower than every honest
+method—because it under-covers; its narrowness is bought with coverage,
+and its failures at the <span class="math inline">90\%</span> level stem
+from volatility dynamics, not the fat tails folklore blames. Conformal
+prediction for returns is neither a guarantee that transfers unscathed
+nor a method broken by dependence: it is a calibration layer whose
+marginal promise is cheap to keep, whose conditional promise must be
+<em>earned</em> with a volatility-aware score, and whose post-break
+promise needs a feedback loop. Used that way, it turns a <span
+class="math inline">6</span>–<span class="math inline">9\%</span> width
+premium into intervals whose stated level survives the regimes where
+parametric confidence quietly fails.</p>
+<h4 id="reproducibility.">Reproducibility.</h4>
+<p>All experiments are deterministic given the released seed (<span
+class="math inline">20260610</span>). The script
+<code>scripts/run_all.py</code> regenerates every record, summary, and
+number in this paper (<code>results/results.json</code>,
+<code>records.csv</code>; about six minutes on one core),
+<code>python -m conformal_experiments.figures</code> regenerates all
+four figures, <code>scripts/check_paper_numbers.py</code> asserts that
+every number quoted in this paper matches the generated results, and a
+<span class="math inline">17</span>-test suite checks the DGP ground
+truths and the conformal theorems (including the ACI update direction).
+The DGPs, methods, protocol, and analysis are released as an open-source
+package at the repository above.</p>
+<h1 id="references">References</h1><div id="refs" class="references csl-bib-body hanging-indent"
+role="list">
+<div id="ref-angelopoulos2023conformal" class="csl-entry"
+role="listitem">
+Angelopoulos, Anastasios N., and Stephen Bates. 2023. <span>“Conformal
+Prediction: A Gentle Introduction.”</span> <em>Foundations and Trends in
+Machine Learning</em> 16 (4): 494–591. <a
+href="https://doi.org/10.1561/2200000101">https://doi.org/10.1561/2200000101</a>.
+</div>
+<div id="ref-barber2023conformal" class="csl-entry" role="listitem">
+Barber, Rina Foygel, Emmanuel J. Candès, Aaditya Ramdas, and Ryan J.
+Tibshirani. 2023. <span>“Conformal Prediction Beyond
+Exchangeability.”</span> <em>The Annals of Statistics</em> 51 (2):
+816–45. <a
+href="https://doi.org/10.1214/23-AOS2276">https://doi.org/10.1214/23-AOS2276</a>.
+</div>
+<div id="ref-bollerslev1986generalized" class="csl-entry"
+role="listitem">
+Bollerslev, Tim. 1986. <span>“Generalized Autoregressive Conditional
+Heteroskedasticity.”</span> <em>Journal of Econometrics</em> 31 (3):
+307–27. <a
+href="https://doi.org/10.1016/0304-4076(86)90063-1">https://doi.org/10.1016/0304-4076(86)90063-1</a>.
+</div>
+<div id="ref-chernozhukov2018exact" class="csl-entry" role="listitem">
+Chernozhukov, Victor, Kaspar Wüthrich, and Yinchu Zhu. 2018.
+<span>“Exact and Robust Conformal Inference Methods for Predictive
+Machine Learning with Dependent Data.”</span> <em>Proceedings of the
+31st Conference on Learning Theory (COLT)</em>, Proceedings of machine
+learning research, vol. 75: 732–49. <a
+href="https://proceedings.mlr.press/v75/chernozhukov18a.html">https://proceedings.mlr.press/v75/chernozhukov18a.html</a>.
+</div>
+<div id="ref-chernozhukov2021distributional" class="csl-entry"
+role="listitem">
+Chernozhukov, Victor, Kaspar Wüthrich, and Yinchu Zhu. 2021.
+<span>“Distributional Conformal Prediction.”</span> <em>Proceedings of
+the National Academy of Sciences</em> 118 (48): e2107794118. <a
+href="https://doi.org/10.1073/pnas.2107794118">https://doi.org/10.1073/pnas.2107794118</a>.
+</div>
+<div id="ref-christoffersen1998evaluating" class="csl-entry"
+role="listitem">
+Christoffersen, Peter F. 1998. <span>“Evaluating Interval
+Forecasts.”</span> <em>International Economic Review</em> 39 (4):
+841–62. <a
+href="https://doi.org/10.2307/2527341">https://doi.org/10.2307/2527341</a>.
+</div>
+<div id="ref-engle1982autoregressive" class="csl-entry" role="listitem">
+Engle, Robert F. 1982. <span>“Autoregressive Conditional
+Heteroscedasticity with Estimates of the Variance of <span>United
+Kingdom</span> Inflation.”</span> <em>Econometrica</em> 50 (4):
+987–1007. <a
+href="https://doi.org/10.2307/1912773">https://doi.org/10.2307/1912773</a>.
+</div>
+<div id="ref-gibbs2021adaptive" class="csl-entry" role="listitem">
+Gibbs, Isaac, and Emmanuel J. Candès. 2021. <span>“Adaptive Conformal
+Inference Under Distribution Shift.”</span> <em>Advances in Neural
+Information Processing Systems</em> 34: 1660–72. <a
+href="https://proceedings.neurips.cc/paper_files/paper/2021/hash/0d441de75945e5acbc865406fc9a2559-Abstract.html">https://proceedings.neurips.cc/paper_files/paper/2021/hash/0d441de75945e5acbc865406fc9a2559-Abstract.html</a>.
+</div>
+<div id="ref-gibbs2024conformal" class="csl-entry" role="listitem">
+Gibbs, Isaac, and Emmanuel J. Candès. 2024. <span>“Conformal Inference
+for Online Prediction with Arbitrary Distribution Shifts.”</span>
+<em>Journal of Machine Learning Research</em> 25 (162): 1–36. <a
+href="https://jmlr.org/papers/v25/22-1218.html">https://jmlr.org/papers/v25/22-1218.html</a>.
+</div>
+<div id="ref-kupiec1995techniques" class="csl-entry" role="listitem">
+Kupiec, Paul H. 1995. <span>“Techniques for Verifying the Accuracy of
+Risk Measurement Models.”</span> <em>The Journal of Derivatives</em> 3
+(2): 73–84. <a
+href="https://doi.org/10.3905/jod.1995.407942">https://doi.org/10.3905/jod.1995.407942</a>.
+</div>
+<div id="ref-lei2018distribution" class="csl-entry" role="listitem">
+Lei, Jing, Max G’Sell, Alessandro Rinaldo, Ryan J. Tibshirani, and Larry
+Wasserman. 2018. <span>“Distribution-Free Predictive Inference for
+Regression.”</span> <em>Journal of the American Statistical
+Association</em> 113 (523): 1094–111. <a
+href="https://doi.org/10.1080/01621459.2017.1307116">https://doi.org/10.1080/01621459.2017.1307116</a>.
+</div>
+<div id="ref-romano2019conformalized" class="csl-entry" role="listitem">
+Romano, Yaniv, Evan Patterson, and Emmanuel J. Candès. 2019.
+<span>“Conformalized Quantile Regression.”</span> <em>Advances in Neural
+Information Processing Systems</em> 32: 3538–48. <a
+href="https://papers.nips.cc/paper_files/paper/2019/hash/5103c3584b063c431bd1268e9b5e76fb-Abstract.html">https://papers.nips.cc/paper_files/paper/2019/hash/5103c3584b063c431bd1268e9b5e76fb-Abstract.html</a>.
+</div>
+<div id="ref-shafer2008tutorial" class="csl-entry" role="listitem">
+Shafer, Glenn, and Vladimir Vovk. 2008. <span>“A Tutorial on Conformal
+Prediction.”</span> <em>Journal of Machine Learning Research</em> 9:
+371–421. <a
+href="https://jmlr.org/papers/v9/shafer08a.html">https://jmlr.org/papers/v9/shafer08a.html</a>.
+</div>
+<div id="ref-vovk2005algorithmic" class="csl-entry" role="listitem">
+Vovk, Vladimir, Alexander Gammerman, and Glenn Shafer. 2005.
+<em>Algorithmic Learning in a Random World</em>. Springer. <a
+href="https://doi.org/10.1007/b106715">https://doi.org/10.1007/b106715</a>.
+</div>
+<div id="ref-vovk2022algorithmic" class="csl-entry" role="listitem">
+Vovk, Vladimir, Alexander Gammerman, and Glenn Shafer. 2022.
+<em>Algorithmic Learning in a Random World</em>. 2nd ed. Springer. <a
+href="https://doi.org/10.1007/978-3-031-06649-8">https://doi.org/10.1007/978-3-031-06649-8</a>.
+</div>
+<div id="ref-xu2021conformal" class="csl-entry" role="listitem">
+Xu, Chen, and Yao Xie. 2021. <span>“Conformal Prediction Interval for
+Dynamic Time-Series.”</span> <em>Proceedings of the 38th International
+Conference on Machine Learning (ICML)</em>, Proceedings of machine
+learning research, vol. 139: 11559–69. <a
+href="https://proceedings.mlr.press/v139/xu21h.html">https://proceedings.mlr.press/v139/xu21h.html</a>.
+</div>
+<div id="ref-zaffran2022adaptive" class="csl-entry" role="listitem">
+Zaffran, Margaux, Olivier Féron, Yannig Goude, Julie Josse, and Aymeric
+Dieuleveut. 2022. <span>“Adaptive Conformal Predictions for Time
+Series.”</span> <em>Proceedings of the 39th International Conference on
+Machine Learning (ICML)</em>, Proceedings of machine learning research,
+vol. 162: 25834–66. <a
+href="https://proceedings.mlr.press/v162/zaffran22a.html">https://proceedings.mlr.press/v162/zaffran22a.html</a>.
+</div>
+</div>
+<section id="footnotes" class="footnotes footnotes-end-of-document"
+role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1"><p>The specific practitioner advice under test
+here—including the claim that split conformal transfers to returns
+essentially unchanged, the EWMA-normalized score, and an ACI variant for
+regime shifts—originates in the author’s own earlier practitioner draft
+(a market-making blog post on conformal prediction for position sizing).
+This paper is therefore a controlled <em>self-audit</em> of advice the
+author has himself circulated, not an attack on a third party. The audit
+caught a concrete bug: the draft’s ACI pseudocode updates the conformal
+quantile with a sign such that a <em>missed</em> interval
+<em>narrows</em> the next one—the opposite of the Gibbs–Candès
+recursion. The corrected update (Eq. <a href="#eq:aci"
+data-reference-type="ref" data-reference="eq:aci">[eq:aci]</a>) is
+pinned by a unit test in the released code.<a href="#fnref1"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>Note the direction; the practitioner draft audited here
+got it backwards (see the footnote in the Introduction). When <span
+class="math inline">\alpha_t</span> wanders to <span
+class="math inline">\le 0</span> the corrected rank in Eq. <a
+href="#eq:cq" data-reference-type="eqref"
+data-reference="eq:cq">[eq:cq]</a> exceeds <span
+class="math inline">n</span> and the interval is all of <span
+class="math inline">\mathbb{R}</span> (always covers); when <span
+class="math inline">\alpha_t\ge 1</span> it is empty. Both conventions
+are required by the ACI guarantee; in our released runs only the
+always-cover case ever occurs (the empty-interval case never triggers),
+and the fraction of unbounded steps is reported wherever it is
+non-negligible.<a href="#fnref2" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>

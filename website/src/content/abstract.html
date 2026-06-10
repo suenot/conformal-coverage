@@ -1,0 +1,39 @@
+<p>Conformal prediction promises finite-sample marginal coverage under
+exchangeability—a property financial returns conspicuously lack. We give
+the claim that “conformal transfers to returns” a controlled accounting
+on simulated processes whose true conditional quantiles are known
+exactly: iid, AR(1), GARCH(1,1), and abrupt regime breaks (<span
+class="math inline">180</span> experiments, <span
+class="math inline">14</span> interval methods, nominal <span
+class="math inline">90\%</span>, online protocol). The verdict splits.
+<em>Marginal</em> coverage survives stationary dependence almost
+exactly: split conformal covers <span
+class="math inline">0.901/0.901/0.895</span> on iid/AR(1)/GARCH, only
+the break DGP dents it (<span class="math inline">0.877</span>), and
+Adaptive Conformal Inference (ACI) sits at <span
+class="math inline">0.900</span> everywhere. <em>Conditional</em> and
+<em>post-break</em> coverage are where it breaks: under GARCH the
+absolute-score interval covers <span
+class="math inline">0.952/0.915/0.820</span> across true-volatility
+terciles—under-covering by <span class="math inline">8</span> points
+exactly when a position sizer most needs honesty; normalizing the score
+by an EWMA volatility closes the spread from <span
+class="math inline">0.134</span> to <span
+class="math inline">0.040</span>, while conformalized quantile
+regression is only a partial fix. After a break, first-<span
+class="math inline">60</span>-step coverage drops to <span
+class="math inline">0.562</span>; ACI repairs the hole monotonically in
+its learning rate (<span class="math inline">0.700</span>–<span
+class="math inline">0.875</span>) at a width cost of <span
+class="math inline">1.12</span>–<span
+class="math inline">1.14\times</span> oracle. At matched coverage,
+honesty costs width: the parametric Gaussian–EWMA baseline is narrowest
+(<span class="math inline">0.99</span>–<span
+class="math inline">1.03\times</span>) but pays with quiet
+under-coverage (<span class="math inline">0.878</span>–<span
+class="math inline">0.888</span>). A side finding corrects folklore: at
+the <span class="math inline">90\%</span> level, fat tails make a
+correctly-scaled Gaussian interval <em>over</em>-cover. The recipe:
+normalize conformal scores by a volatility proxy, add ACI when breaks
+are a concern, and treat parametric narrowness as a coverage liability
+until proven otherwise.</p>

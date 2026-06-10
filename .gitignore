@@ -13,3 +13,6 @@ paper/main.blg
 arxiv_submission/
 arxiv_submission.tar.gz
 .DS_Store
+website/dist/
+website/node_modules/
+website/.astro/
