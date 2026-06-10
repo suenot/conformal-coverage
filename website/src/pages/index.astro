@@ -12,15 +12,34 @@ import abstractHtml from '../content/abstract.html?raw';
     integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous" />
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"
     integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
-    integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous"
-    onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true}]});"></script>
+  <script>
+    // Pandoc fragments wrap math as <span class="math inline|display">RAW TEX</span>
+    // (no \( \) delimiters), so we render the spans directly instead of using
+    // auto-render's text scanning (which both misses these spans and false-fires
+    // on stray delimiters elsewhere).
+    window.addEventListener('DOMContentLoaded', () => {
+      const go = () => document.querySelectorAll('span.math').forEach(el => {
+        let tex = el.textContent
+          .replace(/\\begin\{equation\*?\}|\\end\{equation\*?\}/g, '')
+          .replace(/\\label\{[^}]*\}/g, '')
+          .trim()
+          .replace(/^\\[(\[]/, '').replace(/\\[)\]]$/, '').trim();
+        try {
+          katex.render(tex, el, { displayMode: el.classList.contains('display'), throwOnError: false });
+        } catch (e) { /* leave raw */ }
+      });
+      (typeof katex !== 'undefined') ? go() : document.querySelector('script[src*="katex.min.js"]').addEventListener('load', go);
+    });
+  </script>
   <style>
     :root { --ink:#1a1f29; --muted:#5b6472; --accent:#1f3b73; --rule:#e3e6ea; --bg:#fdfdfb; }
     * { box-sizing:border-box; }
     body { margin:0; background:var(--bg); color:var(--ink);
       font:17px/1.65 Georgia, 'Times New Roman', serif; }
-    .wrap { max-width:760px; margin:0 auto; padding:0 20px 80px; }
+    /* A4-page-like width (210mm ≈ 794px at 96dpi) rather than a narrow column */
+    .wrap { max-width:880px; margin:0 auto; padding:0 42px 80px; background:#fff;
+      box-shadow:0 0 0 1px var(--rule), 0 8px 30px rgba(0,0,0,.05); }
+    body { background:#eceef0; }
     header { padding:56px 0 8px; }
     h1.title { font-size:30px; line-height:1.25; margin:0 0 14px; }
     .meta { color:var(--muted); font-size:15px; }

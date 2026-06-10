@@ -628,18 +628,15 @@ class="math inline">0.90</span>). Spread is the per-experiment max–min
 tercile coverage, averaged. Width ratios are relative to the oracle
 interval within the tercile. The oracle row gives the sampling floor of
 both the spread and the width metric.</caption>
-<thead>
-<tr>
-<th style="text-align: left;"></th>
-<th colspan="3" style="text-align: center;">Coverage by tercile</th>
-<th style="text-align: center;"></th>
-<th colspan="2" style="text-align: center;">Width / oracle</th>
-</tr>
-</thead>
 <tbody>
 <tr>
-<td style="text-align: left;"><span>2-4</span>(lr)<span>6-7</span>
-Method</td>
+<td style="text-align: left;"></td>
+<td colspan="3" style="text-align: center;">Coverage by tercile</td>
+<td style="text-align: center;"></td>
+<td colspan="2" style="text-align: center;">Width / oracle</td>
+</tr>
+<tr>
+<td style="text-align: left;">Method</td>
 <td style="text-align: center;">low</td>
 <td style="text-align: center;">mid</td>
 <td style="text-align: center;">high</td>
@@ -804,18 +801,16 @@ runs that recover, with the recovered fraction reported alongside; width
 is the mean ratio to the oracle over the bounded steps of the test
 segment (the unbounded fraction is reported separately). The oracle row
 calibrates the noise floor of the event-time metrics.</caption>
-<thead>
-<tr>
-<th style="text-align: left;"></th>
-<th colspan="3" style="text-align: center;">Coverage in window</th>
-<th style="text-align: center;"></th>
-<th style="text-align: center;"></th>
-<th style="text-align: center;"></th>
-</tr>
-</thead>
 <tbody>
 <tr>
-<td style="text-align: left;"><span>2-4</span> Method</td>
+<td style="text-align: left;"></td>
+<td colspan="3" style="text-align: center;">Coverage in window</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td style="text-align: left;">Method</td>
 <td style="text-align: center;">0–60</td>
 <td style="text-align: center;">60–150</td>
 <td style="text-align: center;">300–600</td>
@@ -1290,7 +1285,7 @@ caught a concrete bug: the draft’s ACI pseudocode updates the conformal
 quantile with a sign such that a <em>missed</em> interval
 <em>narrows</em> the next one—the opposite of the Gibbs–Candès
 recursion. The corrected update (Eq. <a href="#eq:aci"
-data-reference-type="ref" data-reference="eq:aci">[eq:aci]</a>) is
+data-reference-type="ref" data-reference="eq:aci">(aci)</a>) is
 pinned by a unit test in the released code.<a href="#fnref1"
 class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn2"><p>Note the direction; the practitioner draft audited here
@@ -1298,7 +1293,7 @@ got it backwards (see the footnote in the Introduction). When <span
 class="math inline">\alpha_t</span> wanders to <span
 class="math inline">\le 0</span> the corrected rank in Eq. <a
 href="#eq:cq" data-reference-type="eqref"
-data-reference="eq:cq">[eq:cq]</a> exceeds <span
+data-reference="eq:cq">(cq)</a> exceeds <span
 class="math inline">n</span> and the interval is all of <span
 class="math inline">\mathbb{R}</span> (always covers); when <span
 class="math inline">\alpha_t\ge 1</span> it is empty. Both conventions
